@@ -7,10 +7,9 @@ using GorillaExtensions;
 using GorillaGameModes;
 using BepInEx;
 using ExitGames.Client.Photon;
-using Photon.Realtime;
 using System;
-using GorillaNetworking;
-using static UnityEngine.Rendering.DebugUI;
+using static Aspect.MenuLib.GorillaExtensions;
+using UnityEngine.Animations.Rigging;
 
 namespace Aspect.MenuLib
 {
@@ -719,7 +718,7 @@ namespace Aspect.MenuLib
             }
         }
         #endregion
-
+        
         #region MASTER
         // Freeze Gun
         public static void FreezeGun()
@@ -727,12 +726,21 @@ namespace Aspect.MenuLib
             RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
-                if (PhotonNetwork.IsMasterClient)
+                if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION")
                 {
                     GorillaTagManager tagManager = GorillaGameManager.instance.GetComponent<GorillaTagManager>();
-                    tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
-                    tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
-                    tagManager.UpdateInfectionState();
+                    if (tagManager.currentInfected.Contains(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner))
+                    {
+                        tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                        tagManager.UpdateInfectionState();
+                        tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                    }
+                    else
+                    {
+                        tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                        tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                        tagManager.UpdateInfectionState();
+                    }
                 }
             }
         }
@@ -746,60 +754,67 @@ namespace Aspect.MenuLib
                 if (PhotonNetwork.IsMasterClient)
                 {
                     GorillaTagManager tagManager = GorillaGameManager.instance.GetComponent<GorillaTagManager>();
-                    tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner, false);
-                    tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
-                    tagManager.UpdateInfectionState();
+                    if (tagManager.currentInfected.Contains(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner))
+                    {
+                        tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                        tagManager.UpdateInfectionState();
+                        tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner, false);
+                    }
+                    else
+                    {
+                        tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner, false);
+                        tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                        tagManager.UpdateInfectionState();
+                    }
                 }
             }
         }
 
         // Material Gun
         static float materialCooldown = 0f;
-        public static void MaterialGun(float cooldown = 0.2f)
+        static int currentMat = 0;
+        public static void MaterialGun(float cooldown = 0.02f)
         {
             RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
-                if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION")
+                if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION" && materialCooldown < Time.time)
                 {
                     if (materialCooldown < Time.time)
                     {
-                        VRRig targetRig = hit.collider.GetComponentInParent<VRRig>();
                         Photon.Realtime.Player target = RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner;
                         GorillaTagManager tagManager = GorillaGameManager.instance.GetComponent<GorillaTagManager>();
 
-                        if (tagManager.isCurrentlyTag)
+                        switch (currentMat)
                         {
-                            if (!targetRig.mainSkin.material.name.Contains(RigManager.it))
-                            {
-                                tagManager.ChangeCurrentIt(target);
-                            }
-                            else
-                            {
-                                tagManager.ChangeCurrentIt(PhotonNetwork.LocalPlayer, false);
-                            }
-                        }
-                        else
-                        {
-                            if (!targetRig.mainSkin.material.name.Contains(RigManager.infected))
-                            {
-                                tagManager.AddInfectedPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
-                            }
-                            else
-                            {
-                                tagManager.currentInfected.Remove(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                            case 0: // remove infected material
+                                tagManager.currentInfected.Remove(target);
                                 tagManager.UpdateInfectionState();
-                            }
+                                currentMat++;
+                                break;
+                            case 1: // add rock material
+                                tagManager.currentIt = target;
+                                currentMat++;
+                                break;
+                            case 2: // add infected material
+                                tagManager.AddInfectedPlayer(target);
+                                currentMat = 0;
+                                break;
+                            default:
+                                if (currentMat > 2) Debug.Log("error: currentMat is larger than max");
+                                if (currentMat < 0) Debug.Log("error: currentMat is smaller than min");
+                                break;
                         }
 
                         materialCooldown = Time.time + cooldown;
                     }
+                    materialCooldown = Time.time + cooldown;
                 }
             }
         }
 
         // Material All
-        public static void MaterialAll(float cooldown = 0.2f)
+        public static void MaterialAll(float cooldown = 0.02f)
         {
             if (PhotonNetwork.IsMasterClient)
             {
@@ -812,28 +827,25 @@ namespace Aspect.MenuLib
                             Photon.Realtime.Player target = RigManager.VRRigToPhotonView(targetRig).Owner;
                             GorillaTagManager tagManager = GorillaGameManager.instance.GetComponent<GorillaTagManager>();
 
-                            if (tagManager.isCurrentlyTag)
+                            switch (currentMat)
                             {
-                                if (!targetRig.mainSkin.material.name.Contains(RigManager.it))
-                                {
-                                    tagManager.ChangeCurrentIt(target);
-                                }
-                                else
-                                {
-                                    tagManager.ChangeCurrentIt(PhotonNetwork.LocalPlayer, false);
-                                }
-                            }
-                            else
-                            {
-                                if (!targetRig.mainSkin.material.name.Contains(RigManager.infected))
-                                {
-                                    tagManager.AddInfectedPlayer(target);
-                                }
-                                else
-                                {
+                                case 0: // remove infected material
                                     tagManager.currentInfected.Remove(target);
                                     tagManager.UpdateInfectionState();
-                                }
+                                    currentMat++;
+                                    break;
+                                case 1: // add rock material
+                                    tagManager.currentIt = target;
+                                    currentMat++;
+                                    break;
+                                case 2: // add infected material
+                                    tagManager.AddInfectedPlayer(target);
+                                    currentMat = 0;
+                                    break;
+                                default:
+                                    if (currentMat > 2) Debug.Log("error: currentMat is larger than max");
+                                    if (currentMat < 0) Debug.Log("error: currentMat is smaller than min");
+                                    break;
                             }
 
                             materialCooldown = Time.time + cooldown;
@@ -850,32 +862,28 @@ namespace Aspect.MenuLib
             {
                 if (materialCooldown < Time.time)
                 {
-                    VRRig targetRig = GorillaTagger.Instance.offlineVRRig;
                     Photon.Realtime.Player target = PhotonNetwork.LocalPlayer;
                     GorillaTagManager tagManager = GorillaGameManager.instance.GetComponent<GorillaTagManager>();
 
-                    if (tagManager.isCurrentlyTag)
+                    switch (currentMat)
                     {
-                        if (!targetRig.mainSkin.material.name.Contains(RigManager.it))
-                        {
-                            tagManager.ChangeCurrentIt(target);
-                        }
-                        else
-                        {
-                            tagManager.ChangeCurrentIt(PhotonNetwork.LocalPlayer, false);
-                        }
-                    }
-                    else
-                    {
-                        if (!targetRig.mainSkin.material.name.Contains(RigManager.infected))
-                        {
-                            tagManager.AddInfectedPlayer(target);
-                        }
-                        else
-                        {
+                        case 0: // remove infected material
                             tagManager.currentInfected.Remove(target);
                             tagManager.UpdateInfectionState();
-                        }
+                            currentMat++;
+                            break;
+                        case 1: // add rock material
+                            tagManager.currentIt = target;
+                            currentMat++;
+                            break;
+                        case 2: // add infected material
+                            tagManager.AddInfectedPlayer(target);
+                            currentMat = 0;
+                            break;
+                        default:
+                            if (currentMat > 2) Debug.Log("error: currentMat is larger than max");
+                            if (currentMat < 0) Debug.Log("error: currentMat is smaller than min");
+                            break;
                     }
 
                     materialCooldown = Time.time + cooldown;
@@ -887,11 +895,11 @@ namespace Aspect.MenuLib
         #region RIG
         // RGB (only works in stump for now)
         static float RGBcooldown = 0f;
-        public static void RGB(float Cooldown = 1f)
+        public static void RGB(float Cooldown = 1f, bool strobe = false)
         {
             // Create RGB action
-            if (Cooldown < 0.0404f) Cooldown = 0.0404f;
-            Color color = Color.HSVToRGB((Time.frameCount / 180f) % 1f, 1f, 1f);
+            if (Cooldown < 0.08f) Cooldown = 0.08f;
+            Color color = strobe ? UnityEngine.Random.ColorHSV() : Color.HSVToRGB((Time.frameCount / 180f) % 1f, 1f, 1f);
             if (RGBcooldown < Time.time)
             {
                 Util.ChangeColor(color.r, color.g, color.b);
@@ -1048,6 +1056,12 @@ namespace Aspect.MenuLib
                 IsInvisCooldown = false;
                 IsInvis = false;
             }
+        }
+
+        // Slingshot
+        public static void Slingshot()
+        {
+            GorillaTagger.Instance.offlineVRRig.slingshot.gameObject.SetActive(true);
         }
         #endregion
 
@@ -1536,6 +1550,241 @@ namespace Aspect.MenuLib
                 hasTurnedOff = true;
             }
         }
+
+        // Spider Monkey
+        private static GameObject lObject = null; // Parent objects for Linerenderers
+        private static GameObject rObject = null;
+        private static LineRenderer lString = null; // LineRenderers
+        private static LineRenderer rString = null;
+        private static GameObject lPointer = null; // Pointers to where a web should shoot
+        private static GameObject rPointer = null;
+        private static bool setRightPosOnce = false; // Delay
+        private static bool setLeftPosOnce = false;
+        private static GameObject lastRightPos = null; // Last Position
+        private static GameObject lastLeftPos = null;
+        public static void SpiderMonkey(bool reset = false)
+        {
+            if (reset)
+            {
+                if (rObject) GameObject.Destroy(rObject);
+                if (lastRightPos) GameObject.Destroy(lastRightPos);
+                setRightPosOnce = false;
+
+                if (lObject) GameObject.Destroy(lObject);
+                if (lastLeftPos) GameObject.Destroy(lastLeftPos);
+                setLeftPosOnce = false;
+                return;
+            }
+
+            RaycastHit lHit;
+            Physics.Raycast(GorillaLocomotion.Player.Instance.leftControllerTransform.position + GorillaLocomotion.Player.Instance.leftControllerTransform.forward, GorillaLocomotion.Player.Instance.leftControllerTransform.forward, out lHit);
+
+            RaycastHit rHit;
+            Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position + GorillaLocomotion.Player.Instance.rightControllerTransform.forward, GorillaLocomotion.Player.Instance.rightControllerTransform.forward, out rHit);
+
+            if (lPointer == null)
+            {
+                lPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                GameObject.Destroy(lPointer.GetComponent<SphereCollider>());
+                GameObject.Destroy(lPointer.GetComponent<Rigidbody>());
+                lPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+            }
+
+            if (rPointer == null)
+            {
+                rPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                GameObject.Destroy(rPointer.GetComponent<SphereCollider>());
+                GameObject.Destroy(rPointer.GetComponent<Rigidbody>());
+                rPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+            }
+
+            lPointer.transform.position = lHit.point;
+            rPointer.transform.position = rHit.point;
+
+            if (lObject == null)
+            {
+                lObject = new GameObject("leftObject");
+
+                lString = lObject.AddComponent<LineRenderer>();
+
+                lString.startWidth = 0.04f;
+                lString.endWidth = 0.04f;
+            }
+
+            if (rObject == null)
+            {
+                rObject = new GameObject("rightObject");
+
+                rString = rObject.AddComponent<LineRenderer>();
+
+                rString.startWidth = 0.04f;
+                rString.endWidth = 0.04f;
+            }
+
+            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
+            {
+                if (!setRightPosOnce)
+                {
+                    rString.SetPosition(0, rHit.point);
+                    lastRightPos = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    GameObject.Destroy(lastRightPos.GetComponent<Rigidbody>());
+                    GameObject.Destroy(lastRightPos.GetComponent<SphereCollider>());
+                    lastRightPos.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    lastRightPos.transform.position = rHit.point;
+                    setRightPosOnce = true;
+                }
+                lastRightPos.transform.LookAt(GorillaLocomotion.Player.Instance.rightControllerTransform.position);
+                rString.SetPosition(1, GorillaLocomotion.Player.Instance.rightControllerTransform.position);
+                GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(-lastRightPos.transform.forward * 1800f * Time.deltaTime, ForceMode.Acceleration);
+            }
+            else
+            {
+                GameObject.Destroy(rObject);
+                rObject = null;
+                GameObject.Destroy(rString);
+                rString = null;
+                GameObject.Destroy(lastRightPos);
+                lastRightPos = null;
+                setRightPosOnce = false;
+            }
+
+            if (Input.instance.CheckButton(Input.ButtonType.grip, true))
+            {
+                if (!setLeftPosOnce)
+                {
+                    lString.SetPosition(0, lHit.point);
+                    lastLeftPos = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    GameObject.Destroy(lastLeftPos.GetComponent<Rigidbody>());
+                    GameObject.Destroy(lastLeftPos.GetComponent<SphereCollider>());
+                    lastLeftPos.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    lastLeftPos.transform.position = lHit.point;
+                    setLeftPosOnce = true;
+                }
+                lastLeftPos.transform.LookAt(GorillaLocomotion.Player.Instance.leftControllerTransform.position);
+                lString.SetPosition(1, GorillaLocomotion.Player.Instance.leftControllerTransform.position);
+                GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(-lastLeftPos.transform.forward * 1800f * Time.deltaTime, ForceMode.Acceleration);
+            }
+            else
+            {
+                GameObject.Destroy(lObject);
+                lObject = null;
+                GameObject.Destroy(lString);
+                lString = null;
+                GameObject.Destroy(lastLeftPos);
+                lastLeftPos = null;
+                setLeftPosOnce = false;
+            }
+        }
+
+        // New Spidermonkey
+        static GameObject lWeb;
+        static GameObject rWeb;
+        static Vector3 lPos;
+        static Vector3 rPos;
+        public static void NewSpiderMonkey(bool left, bool right, bool reset = false)
+        {
+            if (reset) // Reset webshooters
+            {
+                // Reset right shooter
+                rPos = Vector3.zero;
+                if (rWeb) GameObject.Destroy(rWeb);
+
+                // Reset left shooter
+                lPos = Vector3.zero;
+                if (lWeb) GameObject.Destroy(lWeb);
+                return;
+            }
+
+            if (right) // Right webshooter
+            {
+                if (Input.instance.CheckButton(Input.ButtonType.grip, false)) // Get right grip input
+                {
+                    if (rPos == Vector3.zero) // Get the position the right web should shoot to
+                    {
+                        RaycastHit hit;
+                        Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position, GorillaLocomotion.Player.Instance.rightControllerTransform.forward, out hit);
+                        rPos = hit.point;
+                    }
+
+                    if (rWeb == null) // Create web
+                    {
+                        rWeb = new GameObject("Right Webshooter"); // Create GameObject
+
+                        LineRenderer web = rWeb.AddComponent<LineRenderer>(); // Add LineRenderer
+
+                        web.material.shader = Shader.Find("GUI/Text Shader"); // Set material
+
+                        web.startWidth = 0.04f; // Set width of line
+                        web.endWidth = 0.04f;
+
+                        web.startColor = Color.white; // Set color
+                        web.endColor = Color.white;
+
+                        web.SetPosition(0, GorillaLocomotion.Player.Instance.rightControllerTransform.position); // Set position
+                        web.SetPosition(1, rPos);
+                    }
+                    else
+                    {
+                        rWeb.GetComponent<LineRenderer>().SetPosition(0, GorillaLocomotion.Player.Instance.rightControllerTransform.position); // Set position
+
+                        // Add velocity to rig
+                        Vector3 direction = (rPos - GorillaLocomotion.Player.Instance.bodyCollider.transform.position).normalized;
+                        GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(direction * 20, ForceMode.Acceleration);
+                    }
+                }
+                else
+                {
+                    // Reset right shooter
+                    rPos = Vector3.zero;
+                    if (rWeb) GameObject.Destroy(rWeb);
+                }
+            }
+
+            if (left) // Left Webshooter
+            {
+                if (Input.instance.CheckButton(Input.ButtonType.grip, true)) // Get left grip input
+                {
+                    if (lPos == Vector3.zero) // Get the position the left web should shoot to
+                    {
+                        RaycastHit hit;
+                        Physics.Raycast(GorillaLocomotion.Player.Instance.leftControllerTransform.position, GorillaLocomotion.Player.Instance.leftControllerTransform.forward, out hit);
+                        lPos = hit.point;
+                    }
+
+                    if (lWeb == null)
+                    {
+                        lWeb = new GameObject("Right Webshooter"); // Create GameObject<
+
+                        LineRenderer web = lWeb.AddComponent<LineRenderer>(); // Add LineRenderer
+
+                        web.material.shader = Shader.Find("GUI/Text Shader"); // Set material
+
+                        web.startWidth = 0.04f; // Set width of line
+                        web.endWidth = 0.04f;
+
+                        web.startColor = Color.white; // Set color
+                        web.endColor = Color.white;
+
+                        web.SetPosition(0, GorillaLocomotion.Player.Instance.leftControllerTransform.position); // Set position
+                        web.SetPosition(1, lPos);
+                    }
+                    else
+                    {
+                        lWeb.GetComponent<LineRenderer>().SetPosition(0, GorillaLocomotion.Player.Instance.leftControllerTransform.position); // Set position
+
+                        // Add velocity to rig
+                        Vector3 direction = (lPos - GorillaLocomotion.Player.Instance.bodyCollider.transform.position).normalized;
+                        GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(direction * 20, ForceMode.Acceleration);
+                    }
+                }
+                else
+                {
+                    // Reset left shooter
+                    lPos = Vector3.zero;
+                    if (lWeb) GameObject.Destroy(lWeb);
+                }
+            }
+        }
         #endregion
 
         #region FUN & RANDOM
@@ -1591,10 +1840,7 @@ namespace Aspect.MenuLib
             RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false))
             {
-                if (GameObject.Find("Floating Bug Holdable").GetComponent<ThrowableBug>().ownerRig == GorillaTagger.Instance.offlineVRRig)
-                {
-                    GameObject.Find("Floating Bug Holdable").transform.position = hit.point;
-                }
+                GameObject.Find("Floating Bug Holdable").transform.position = hit.point;
             }
         }
 
@@ -1609,7 +1855,7 @@ namespace Aspect.MenuLib
                 {
                     UnityEngine.Random.Range(0, 254),
                     false,
-                    1000f
+                    1f
                 });
             }
         }
@@ -1618,6 +1864,39 @@ namespace Aspect.MenuLib
         public static void AcceptTOS()
         {
             GameObject.Find("MiscellaneousScripts/LegalAgreementCheck/LegalAgreements").GetComponent<LegalAgreements>().testFaceButtonPress = true;
+        }
+
+        // Punch Mod
+        public static void PunchMod(bool reset = false)
+        {
+            if (reset)
+            {
+                foreach (VRRig rig in GorillaParent.instance.vrrigs)
+                {
+                    if (rig.gameObject.GetComponent<PunchMod>())
+                    {
+                        GameObject.Destroy(rig.gameObject.GetComponent<PunchMod>());
+                    }
+                }
+                return;
+            }
+
+            foreach (VRRig rig in GorillaParent.instance.vrrigs)
+            {
+                if (!rig.gameObject.GetComponent<PunchMod>() && rig != GorillaTagger.Instance.myVRRig)
+                {
+                    rig.gameObject.AddComponent<PunchMod>();
+                }
+            }
+        }
+
+        // Grab Snowballs
+        public static void GrabSnowballs()
+        {
+            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
+            {
+                GameObject.Find("SnowballRightAnchor/LMACF.").GetComponent<SnowballThrowable>().OnEnable();
+            }
         }
         #endregion
     }
@@ -1854,6 +2133,52 @@ namespace Aspect.MenuLib
             public void OnDestroy()
             {
                 action.Invoke();
+            }
+        }
+
+        // Old PunchMod
+        public class PunchMod : MonoBehaviour
+        {
+            private GameObject lHand;
+            private GameObject rHand;
+
+            private void Start()
+            {
+                lHand = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                GameObject.Destroy(lHand.GetComponent<Rigidbody>());
+                GameObject.Destroy(lHand.GetComponent<SphereCollider>());
+                lHand.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+
+                rHand = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                GameObject.Destroy(rHand.GetComponent<Rigidbody>());
+                GameObject.Destroy(rHand.GetComponent<SphereCollider>());
+                rHand.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+            }
+
+            private void Update()
+            {
+                lHand.transform.position = base.GetComponent<VRRig>().leftHand.rigTarget.position;
+                lHand.transform.LookAt(GorillaTagger.Instance.myVRRig.transform);
+                rHand.transform.position = base.GetComponent<VRRig>().rightHand.rigTarget.position;
+                rHand.transform.LookAt(GorillaTagger.Instance.myVRRig.transform);
+
+                float lDistance = Vector3.Distance(lHand.transform.position, GorillaTagger.Instance.myVRRig.transform.position);
+                float rDistance = Vector3.Distance(rHand.transform.position, GorillaTagger.Instance.myVRRig.transform.position);
+
+                if (lDistance < 0.3f)
+                {
+                    GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(lHand.transform.forward * 35000f * Time.deltaTime, ForceMode.Acceleration);
+                }
+                if (rDistance < 0.3f)
+                {
+                    GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(rHand.transform.forward * 35000f * Time.deltaTime, ForceMode.Acceleration);
+                }
+            }
+
+            private void OnDisable()
+            {
+                Destroy(lHand);
+                Destroy(rHand);
             }
         }
     }

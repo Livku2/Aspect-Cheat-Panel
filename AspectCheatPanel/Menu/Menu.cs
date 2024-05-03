@@ -66,7 +66,7 @@ namespace Aspect.MenuLib
         // Variables collected from start
         public static Vector3 lHandOffset = Vector3.zero;
         public static Vector3 rHandOffset = Vector3.zero;
-        public static GameObject thirdPersonCameraGO { get; private set; }
+        public static GameObject thirdPersonCameraGO { get; private set; } = GameObject.Find("Shoulder Camera");
 
         public static void Run_OnUpdate(Player __instance)
         {
@@ -78,10 +78,6 @@ namespace Aspect.MenuLib
             if (rHandOffset == Vector3.zero)
             {
                 rHandOffset = GorillaLocomotion.Player.Instance.rightHandOffset;
-            }
-            if (GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera"))
-            {
-                thirdPersonCameraGO = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
             }
 
             // If this is true, the menu won't run
@@ -241,7 +237,11 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Legit Wall Walk [GRIP]", OnUpdate = () => GorillaMods.WallWalk(2, Input.instance.CheckButton(Input.ButtonType.grip, false)), Description = "Pulls you towards whatever you're touching slowly." },
                             new Menu.ButtonTemplate { Text = "Longarms", OnUpdate = () => GorillaMods.LongArms(Vector3.forward / 8, Vector3.forward / 8), OnDisable = () => GorillaMods.LongArms(Vector3.zero, Vector3.zero, true), Description = "Gives you longarms, like your controllers are on sticks." },
                             new Menu.ButtonTemplate { Text = "Legit Longarms", OnUpdate = () => GorillaMods.LongArms(Vector3.forward / 15, Vector3.forward / 15), OnDisable = () => GorillaMods.LongArms(Vector3.zero, Vector3.zero, true), Description = "Gives you unnoticeable longarms, like your controllers are on sticks." },
-                            new Menu.ButtonTemplate { Text = "C4", OnUpdate = () => GorillaMods.C4(), OnDisable = () => GorillaMods.C4(0, true), Description = "Left grip to plant, and right grip to detonate." }
+                            new Menu.ButtonTemplate { Text = "C4", OnUpdate = () => GorillaMods.C4(), OnDisable = () => GorillaMods.C4(0, true), Description = "Left grip to plant, and right grip to detonate." },
+                            new Menu.ButtonTemplate { Text = "Spider Monkey [OLD AND BUGGY]", OnUpdate = () => GorillaMods.SpiderMonkey(), OnDisable = () => GorillaMods.SpiderMonkey(true), Description = "Makes you swing from brach to branch, with high velocitys." },
+                            new Menu.ButtonTemplate { Text = "New Spider Monkey", OnUpdate = () => GorillaMods.NewSpiderMonkey(true, true), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs, and swing around." },
+                            new Menu.ButtonTemplate { Text = "Left Web Shooter", OnUpdate = () => GorillaMods.NewSpiderMonkey(true, false), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs and swing with left hand only." },
+                            new Menu.ButtonTemplate { Text = "Right Web Shooter", OnUpdate = () => GorillaMods.NewSpiderMonkey(false, true), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs and swing with right hand only." }
                         }
                     };
                     menu.Categorys.Add(Movement);
@@ -277,14 +277,16 @@ namespace Aspect.MenuLib
                         ButtonList = new List<ButtonTemplate>()
                         {
                             new Menu.ButtonTemplate { Text = "Slow RGB", OnUpdate = () => GorillaMods.RGB(), Extensions = "STUMP", Description = "Changes your color slowly." },
-                            new Menu.ButtonTemplate { Text = "Fast RGB", OnUpdate = () => GorillaMods.RGB(0.1f), Extensions = "STUMP", Description = "Changes your color quickly." },
+                            new Menu.ButtonTemplate { Text = "Fast RGB", OnUpdate = () => GorillaMods.RGB(0.1f), Extensions = "STUMP", Description = "Changes your color smoothly and quickly." },
+                            new Menu.ButtonTemplate { Text = "Slow Strobe", OnUpdate = () => GorillaMods.RGB(1f, true), Description = "Changes your color to a random one once every second." },
+                            new Menu.ButtonTemplate { Text = "Fast Strobe", OnUpdate = () => GorillaMods.RGB(0.1f, true), Description = "Changes your color to a random one once every 0.1 seconds." },
                             new Menu.ButtonTemplate { Text = "Silent Handtaps", OnUpdate = () => GorillaMods.SetHandtapVolume(0f), OnDisable = () => GorillaMods.SetHandtapVolume(), Description = "Makes your steps not make a single sound!" },
                             new Menu.ButtonTemplate { Text = "Loud Handtaps", OnUpdate = () => GorillaMods.SetHandtapVolume(1f), OnDisable = () => GorillaMods.SetHandtapVolume(), Description = "Makes your steps very, very loud!" },
                             new Menu.ButtonTemplate { Text = "Ghost Monkey", OnUpdate = () => GorillaMods.GhostMonkey(), OnDisable = () => GorillaMods.GhostMonkey(false), Description = "Secondary to go out of your rig." },
                             new Menu.ButtonTemplate { Text = "Invisibility", OnUpdate = () => GorillaMods.Invisibility(), OnDisable = () => GorillaMods.Invisibility(false), Description = "Secondary to go invisible." },
                             new Menu.ButtonTemplate { Text = "Solid Monkeys", OnUpdate = () => GorillaMods.SolidMonkeys(), OnDisable = () => GorillaMods.SolidMonkeys(true), Description = "Makes every other player solid, so you can stand on them." },
-                            new Menu.ButtonTemplate { Text = "Slingshot In Locker [COMING SOON]", OnUpdate = () => NotifiLib.SendNotification("This mod is coming soon."), Toggle = false, Description = "Adds the slingshot to your locker." },
-                            new Menu.ButtonTemplate { Text = "Show Color Codes", Description = "Shows a players color code on their chest." }
+                            new Menu.ButtonTemplate { Text = "Slingshot In Locker", OnUpdate = () => GorillaMods.Slingshot(), Toggle = false, Description = "Adds the slingshot to your locker." },
+                            new Menu.ButtonTemplate { Text = "Show Color Codes [COMING SOON]", OnUpdate = () => NotifiLib.SendNotification("This mod is coming soon."), Toggle = false, Description = "Shows a players color code on their chest." }
                         }
                     };
                     menu.Categorys.Add(Rig);
@@ -301,7 +303,9 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Control Bug", OnUpdate = () => GorillaMods.ControlBug(), OnDisable = () => GorillaExtensions.GunTemplate(true), Description = "A gun-mod that makes you able to control the bug." },
                             new Menu.ButtonTemplate { Text = "Platform Gun", OnUpdate = () => GorillaMods.PlatformGun(), OnDisable = () => GorillaExtensions.GunTemplate(true), Description = "Spam spawning networked platforms." },
                             new Menu.ButtonTemplate { Text = "Click Buttons Gun", OnUpdate = () => GorillaMods.ClickButtonsGun(), Description = "A gun to click any type of buttons." },
-                            new Menu.ButtonTemplate { Text = "Random Sound Spam", OnUpdate = () => GorillaMods.SoundSpam(), Description = "Plays random tap-sounds." }
+                            new Menu.ButtonTemplate { Text = "Random Sound Spam", OnUpdate = () => GorillaMods.SoundSpam(), Description = "Plays random tap-sounds." },
+                            new Menu.ButtonTemplate { Text = "Punch Mod", OnUpdate = () => GorillaMods.PunchMod(), OnDisable = () => GorillaMods.PunchMod(true), Description = "Makes other people able to punch you, to give you knockback." },
+                            new Menu.ButtonTemplate { Text = "Grab Snowballs", OnUpdate = () => GorillaMods.GrabSnowballs(), Description = "Makes you able to grab snowballs straight out of thin air." }
                         }
                     };
                     menu.Categorys.Add(Fun);
