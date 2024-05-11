@@ -9,8 +9,7 @@ using BepInEx;
 using ExitGames.Client.Photon;
 using System;
 using static Aspect.MenuLib.GorillaExtensions;
-using System.Runtime.Remoting.Messaging;
-using UnityEngine.Rendering;
+using UnityEngine.Animations.Rigging;
 
 namespace Aspect.MenuLib
 {
@@ -90,26 +89,16 @@ namespace Aspect.MenuLib
         static Dictionary<string, GameObject> TracerObjects = new Dictionary<string, GameObject>();
         static Dictionary<string, GameObject[]> Boxes = new Dictionary<string, GameObject[]>();
         static Vector3[] boxLinesOffset = new Vector3[] { new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(-0.5f, -0.5f, 0f) };
-        public static int ColorwayESP = 1;
-        public static Dictionary<int, string> colorways = new Dictionary<int, string>();
-        public static void SetupColorways()
-        {
-            colorways.Add(1, "Gamemode");
-            colorways.Add(2, "Rigcolor");
-        }
-        public static string ChangeESPTheme()
-        {
-            if (ColorwayESP + 1 > colorways.Count)
-            {
-                ColorwayESP = 1;
-            }
-            else
-            {
-                ColorwayESP++;
-            }
-            NotifiLib.SendNotification(colorways[ColorwayESP]);
-            return colorways[ColorwayESP];
-        }
+        static Color taggedColor = new Color(255f / 255f, 0f / 255f, 0f / 255f, 0.3f);
+        static Color casualColor = new Color(0f / 255f, 255f / 255f, 0f / 255f, 0.3f);
+        static Color huntedColor = new Color(0f / 255f, 128f / 255f, 255f / 255f, 0.3f);
+        static Color sodaInfected = new Color(0f / 255f, 255f / 255, 128f / 255, 0.3f);
+        static Color blueAlive = new Color(0f / 255f, 128f / 255f, 255f / 255f, 0.3f);
+        static Color blueHit = new Color(0f / 255f, 64f / 255f, 255f / 255f, 0.3f);
+        static Color paintsplatterblue = new Color(0f / 255f, 0f / 255f, 255f / 255f, 0.3f);
+        static Color orangeAlive = new Color(255f / 255f, 128f / 255f, 0f / 255f, 0.3f);
+        static Color orangeHit = new Color(255f / 255f, 64f / 255f, 0f / 255f, 0.3f);
+        static Color paintsplatterorange = new Color(255f / 255f, 0f / 255f, 0f / 255f, 0.3f);
         public static void Chams(bool reset = false)
         {
             // Resets rig materials if Reset = true
@@ -118,7 +107,7 @@ namespace Aspect.MenuLib
                 // Set original rig colors after turning off
                 foreach (VRRig rig in GorillaParent.instance.vrrigs)
                 {
-                    rig.mainSkin.material.shader = RigManager.uberShader;
+                    rig.mainSkin.material.shader = Shader.Find("GorillaTag/UberShader");
                     if (OriginalRigColors.ContainsKey(RigManager.VRRigToPhotonView(rig).Owner.UserId))
                     {
                         if (RigManager.IsTagged(rig))
@@ -156,30 +145,23 @@ namespace Aspect.MenuLib
                 }
 
                 // Get Color
-                Color color = rig.playerColor;
-                switch (ColorwayESP)
-                {
-                    case 1:
-                        if (RigManager.IsTagged(rig) || GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget == RigManager.VRRigToPhotonView(rig).Owner) color = RigManager.taggedColor;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.hunted)) color = RigManager.huntedColor;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.sodainfected)) color = RigManager.sodaInfected;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.bluealive)) color = RigManager.blueAlive;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.bluehit)) color = RigManager.blueHit;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterblue)) color = RigManager.bluepaintsplatter;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.orangealive)) color = RigManager.orangeAlive;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.orangehit)) color = RigManager.orangeHit;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterorange)) color = RigManager.orangepaintsplatter;
-                        else color = RigManager.casualColor;
-                        break;
-                    case 2:
-                        break;
-                }
+                Color color;
+                if (RigManager.IsTagged(rig) || GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget == RigManager.VRRigToPhotonView(rig).Owner) color = taggedColor;
+                else if (rig.mainSkin.material.name.Contains(RigManager.hunted)) color = huntedColor;
+                else if (rig.mainSkin.material.name.Contains(RigManager.sodainfected)) color = sodaInfected;
+                else if (rig.mainSkin.material.name.Contains(RigManager.bluealive)) color = blueAlive;
+                else if (rig.mainSkin.material.name.Contains(RigManager.bluehit)) color = blueHit;
+                else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterblue)) color = paintsplatterblue;
+                else if (rig.mainSkin.material.name.Contains(RigManager.orangealive)) color = orangeAlive;
+                else if (rig.mainSkin.material.name.Contains(RigManager.orangehit)) color = orangeHit;
+                else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterorange)) color = paintsplatterorange;
+                else color = casualColor;
 
                 // Set chams
-                if (rig.mainSkin.material.color != color || rig.mainSkin.material.shader != RigManager.textShader)
+                if (rig.mainSkin.material.color != color || rig.mainSkin.material.shader != Shader.Find("GUI/Text Shader"))
                 {
                     rig.mainSkin.material.color = color;
-                    rig.mainSkin.material.shader = RigManager.textShader;
+                    rig.mainSkin.material.shader = Shader.Find("GUI/Text Shader");
                 }
             }
         }
@@ -207,24 +189,17 @@ namespace Aspect.MenuLib
                 if (rig == GorillaTagger.Instance.offlineVRRig) continue;
 
                 // Get Color
-                Color color = rig.playerColor;
-                switch (ColorwayESP)
-                {
-                    case 1:
-                        if (RigManager.IsTagged(rig) || GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget == RigManager.VRRigToPhotonView(rig).Owner) color = RigManager.taggedColor;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.hunted)) color = RigManager.huntedColor;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.sodainfected)) color = RigManager.sodaInfected;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.bluealive)) color = RigManager.blueAlive;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.bluehit)) color = RigManager.blueHit;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterblue)) color = RigManager.bluepaintsplatter;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.orangealive)) color = RigManager.orangeAlive;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.orangehit)) color = RigManager.orangeHit;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterorange)) color = RigManager.orangepaintsplatter;
-                        else color = RigManager.casualColor;
-                        break;
-                    case 2:
-                        break;
-                }
+                Color color;
+                if (RigManager.IsTagged(rig) || GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget == RigManager.VRRigToPhotonView(rig).Owner) color = taggedColor;
+                else if (rig.mainSkin.material.name.Contains(RigManager.hunted)) color = huntedColor;
+                else if (rig.mainSkin.material.name.Contains(RigManager.sodainfected)) color = sodaInfected;
+                else if (rig.mainSkin.material.name.Contains(RigManager.bluealive)) color = blueAlive;
+                else if (rig.mainSkin.material.name.Contains(RigManager.bluehit)) color = blueHit;
+                else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterblue)) color = paintsplatterblue;
+                else if (rig.mainSkin.material.name.Contains(RigManager.orangealive)) color = orangeAlive;
+                else if (rig.mainSkin.material.name.Contains(RigManager.orangehit)) color = orangeHit;
+                else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterorange)) color = paintsplatterorange;
+                else color = casualColor;
 
                 // Draw tracers if stateDepender = true
                 if (stateDepender)
@@ -234,7 +209,7 @@ namespace Aspect.MenuLib
                     {
                         GameObject line = new GameObject(RigManager.VRRigToPhotonView(rig).Owner.UserId);
                         LineRenderer lineRenderer = line.AddComponent<LineRenderer>();
-                        lineRenderer.material.shader = RigManager.textShader;
+                        lineRenderer.material.shader = Shader.Find("GUI/Text Shader");
                         lineRenderer.startWidth = 0.025f;
                         lineRenderer.endWidth = 0.025f;
                         lineRenderer.startColor = color;
@@ -304,24 +279,17 @@ namespace Aspect.MenuLib
                 if (rig == GorillaTagger.Instance.offlineVRRig) continue;
 
                 // Get Color
-                Color color = rig.playerColor;
-                switch (ColorwayESP)
-                {
-                    case 1:
-                        if (RigManager.IsTagged(rig) || GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget == RigManager.VRRigToPhotonView(rig).Owner) color = RigManager.taggedColor;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.hunted)) color = RigManager.huntedColor;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.sodainfected)) color = RigManager.sodaInfected;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.bluealive)) color = RigManager.blueAlive;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.bluehit)) color = RigManager.blueHit;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterblue)) color = RigManager.bluepaintsplatter;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.orangealive)) color = RigManager.orangeAlive;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.orangehit)) color = RigManager.orangeHit;
-                        else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterorange)) color = RigManager.orangepaintsplatter;
-                        else color = RigManager.casualColor;
-                        break;
-                    case 2:
-                        break;
-                }
+                Color color;
+                if (RigManager.IsTagged(rig) || GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget == RigManager.VRRigToPhotonView(rig).Owner) color = taggedColor;
+                else if (rig.mainSkin.material.name.Contains(RigManager.hunted)) color = huntedColor;
+                else if (rig.mainSkin.material.name.Contains(RigManager.sodainfected)) color = sodaInfected;
+                else if (rig.mainSkin.material.name.Contains(RigManager.bluealive)) color = blueAlive;
+                else if (rig.mainSkin.material.name.Contains(RigManager.bluehit)) color = blueHit;
+                else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterblue)) color = paintsplatterblue;
+                else if (rig.mainSkin.material.name.Contains(RigManager.orangealive)) color = orangeAlive;
+                else if (rig.mainSkin.material.name.Contains(RigManager.orangehit)) color = orangeHit;
+                else if (rig.mainSkin.material.name.Contains(RigManager.paintsplatterorange)) color = paintsplatterorange;
+                else color = casualColor;
 
                 // Create a new box
                 GameObject boxParent = new GameObject("BoxParent");
@@ -335,7 +303,7 @@ namespace Aspect.MenuLib
                     // Create top
                     GameObject top = new GameObject("top");
                     LineRenderer topLine = top.AddComponent<LineRenderer>();
-                    topLine.material.shader = RigManager.textShader;
+                    topLine.material.shader = Shader.Find("GUI/Text Shader");
                     topLine.startWidth = 0.025f;
                     topLine.endWidth = 0.025f;
                     topLine.startColor = color;
@@ -348,7 +316,7 @@ namespace Aspect.MenuLib
                     // Create bottom
                     GameObject bottom = new GameObject("bottom");
                     LineRenderer bottomLine = bottom.AddComponent<LineRenderer>();
-                    bottomLine.material.shader = RigManager.textShader;
+                    bottomLine.material.shader = Shader.Find("GUI/Text Shader");
                     bottomLine.startWidth = 0.025f;
                     bottomLine.endWidth = 0.025f;
                     bottomLine.startColor = color;
@@ -361,7 +329,7 @@ namespace Aspect.MenuLib
                     // Create left
                     GameObject left = new GameObject("left");
                     LineRenderer leftLine = left.AddComponent<LineRenderer>();
-                    leftLine.material.shader = RigManager.textShader;
+                    leftLine.material.shader = Shader.Find("GUI/Text Shader");
                     leftLine.startWidth = 0.025f;
                     leftLine.endWidth = 0.025f;
                     leftLine.startColor = color;
@@ -374,7 +342,7 @@ namespace Aspect.MenuLib
                     // Create right
                     GameObject right = new GameObject("right");
                     LineRenderer rightLine = right.AddComponent<LineRenderer>();
-                    rightLine.material.shader = RigManager.textShader;
+                    rightLine.material.shader = Shader.Find("GUI/Text Shader");
                     rightLine.startWidth = 0.025f;
                     rightLine.endWidth = 0.025f;
                     rightLine.startColor = color;
@@ -394,7 +362,7 @@ namespace Aspect.MenuLib
                     // set material of the line
                     gameObjects[i].GetComponent<LineRenderer>().startColor = color;
                     gameObjects[i].GetComponent<LineRenderer>().endColor = color;
-                    gameObjects[i].GetComponent<LineRenderer>().material.shader = RigManager.textShader;
+                    gameObjects[i].GetComponent<LineRenderer>().material.shader = Shader.Find("GUI/Text Shader");
 
                     // set position of the line
                     gameObjects[i].GetComponent<LineRenderer>().SetPosition(0, boxParent.transform.position + boxLinesOffset[i]);
@@ -466,7 +434,7 @@ namespace Aspect.MenuLib
             }
 
             // make tag gun using GorillaExtensions.GunTemplate()
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (RigManager.CurrentGameMode() == "HUNT" && !RigManager.IsHunted(hit.collider.GetComponentInParent<VRRig>()))
@@ -702,7 +670,7 @@ namespace Aspect.MenuLib
                         GorillaTagger.Instance.offlineVRRig.enabled = false;
                         Vector3 random;
                         Vector3 pointToTP;
-                        GorillaMath.LineSegClosestPoints(GorillaTagger.Instance.offlineVRRig.syncPos, -GorillaTagger.Instance.offlineVRRig.LatestVelocity() * 0.3f, infectedPlayer.syncPos, -infectedPlayer.LatestVelocity() * 0.3f, out random, out pointToTP);
+                        GorillaMath.LineSegClosestPoints(GorillaTagger.Instance.offlineVRRig.syncPos, -GorillaTagger.Instance.offlineVRRig.LatestVelocity() * 0.2f, infectedPlayer.syncPos, -infectedPlayer.LatestVelocity() * 0.2f, out random, out pointToTP);
                         GorillaTagger.Instance.offlineVRRig.transform.position = pointToTP;
                     }
                     else
@@ -734,7 +702,7 @@ namespace Aspect.MenuLib
         {
             if (!Disable)
             {
-                if (PlayerPrefs.GetString("didTutorial") == "done")
+                if (PlayerPrefs.GetString("tutorial") == "done")
                 {
                     PlayerPrefs.SetString("didTutorial", "false");
                     PlayerPrefs.Save();
@@ -742,7 +710,7 @@ namespace Aspect.MenuLib
             }
             else
             {
-                if (PlayerPrefs.GetString("didTutorial") != "done")
+                if (PlayerPrefs.GetString("tutorial") != "done")
                 {
                     PlayerPrefs.SetString("didTutorial", "done");
                     PlayerPrefs.Save();
@@ -755,7 +723,7 @@ namespace Aspect.MenuLib
         // Freeze Gun
         public static void FreezeGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION")
@@ -780,7 +748,7 @@ namespace Aspect.MenuLib
         // Vibrate Gun
         public static void VibrateGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (PhotonNetwork.IsMasterClient)
@@ -807,7 +775,7 @@ namespace Aspect.MenuLib
         static int currentMat = 0;
         public static void MaterialGun(float cooldown = 0.02f)
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION" && materialCooldown < Time.time)
@@ -1090,183 +1058,10 @@ namespace Aspect.MenuLib
             }
         }
 
-        // Head Spin
-        public static void HeadSpin(string axis, bool reset = false) // (x/y/z)
+        // Slingshot
+        public static void Slingshot()
         {
-            switch (axis)
-            {
-                case "x":
-                    if (!reset)
-                    {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.x += 15f;
-                    }
-                    else
-                    {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.x = Update.defaultHeadRot.x;
-                    }
-                    break;
-
-                case "y":
-                    if (!reset)
-                    {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y += 15f;
-                    }
-                    else
-                    {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = Update.defaultHeadRot.y;
-                    }
-                    break;
-
-                case "z":
-                    if (!reset)
-                    {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.z += 15f;
-                    }
-                    else
-                    {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.z = Update.defaultHeadRot.z;
-                    }
-                    break;
-            }
-        }
-
-        // Helicopter
-        public static void Helicopter()
-        {
-            if (Input.instance.CheckButton(Input.ButtonType.grip))
-            {
-                if (GorillaTagger.Instance.offlineVRRig.enabled) GorillaTagger.Instance.offlineVRRig.enabled = false;
-                GorillaTagger.Instance.offlineVRRig.transform.position += new Vector3(0, 0.05f, 0) * Util.GetFixedDeltaTime();
-                GorillaTagger.Instance.offlineVRRig.transform.rotation = Quaternion.Euler(GorillaTagger.Instance.offlineVRRig.transform.rotation.eulerAngles + new Vector3(0, 15, 0));
-            }
-            GorillaTagger.Instance.offlineVRRig.enabled = true;
-        }
-
-        // Crazy Rig
-        public static void GoCrazy(bool reset = false)
-        {
-            // Get rig
-            VRRig rig = GorillaTagger.Instance.offlineVRRig;
-
-            // Reset rig
-            if (reset)
-            {
-                // Reset hands
-                rig.rightHand.trackingRotationOffset = Update.rightHandOffset;
-                rig.leftHand.trackingRotationOffset = Update.leftHandOffset;
-
-                // Reset head
-                HeadSpin("x", true);
-                HeadSpin("y", true);
-                HeadSpin("z", true);
-                return;
-            }
-
-            // Spin head
-            HeadSpin("x");
-            HeadSpin("y");
-            HeadSpin("z");
-
-            // Spin hands
-            rig.rightHand.trackingRotationOffset = UnityEngine.Random.rotation.eulerAngles;
-            rig.leftHand.trackingRotationOffset = UnityEngine.Random.rotation.eulerAngles;
-        }
-
-        // Crazy Head
-        public static void CrazyHead(bool disable = false)
-        {
-            // Get rig
-            VRRig rig = GorillaTagger.Instance.offlineVRRig;
-
-            // OnDisable
-            if (disable)
-            {
-                rig.head.trackingRotationOffset = Update.defaultHeadRot;
-                return;
-            }
-
-            // Set Random Rotation
-            rig.head.trackingRotationOffset = UnityEngine.Random.rotation.eulerAngles;
-        }
-
-        // Freeze Rig
-        public static void FreezeRig()
-        {
-            if (Input.instance.CheckButton(Input.ButtonType.grip))
-            {
-                // Get and disable rig
-                VRRig rig = GorillaTagger.Instance.offlineVRRig;
-                if (rig.enabled) rig.enabled = false;
-
-                rig.transform.position = GorillaLocomotion.Player.Instance.gameObject.transform.position;
-                rig.transform.rotation = GorillaLocomotion.Player.Instance.bodyCollider.transform.rotation;
-            }
-            else
-            {
-                GorillaTagger.Instance.enabled = true;
-            }
-        }
-
-        // Freeze And Spin Rig
-        public static void FreezeAndSpin()
-        {
-            if (Input.instance.CheckButton(Input.ButtonType.grip))
-            {
-                // Get and disable rig
-                VRRig rig = GorillaTagger.Instance.offlineVRRig;
-                if (rig.enabled) rig.enabled = false;
-
-                rig.transform.position = GorillaLocomotion.Player.Instance.gameObject.transform.position;
-                rig.transform.rotation = Quaternion.Euler(rig.transform.rotation.eulerAngles + new Vector3(0, 15, 0));
-            }
-            else
-            {
-                GorillaTagger.Instance.enabled = true;
-            }
-        }
-
-        // Projectile Spammer
-        static float errorCooldown = 0f;
-        public static void ProjectileSpammer()
-        {
-            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
-            {
-                if (GorillaTagger.Instance.offlineVRRig.slingshot.currentState == TransferrableObject.PositionState.InLeftHand || GorillaTagger.Instance.offlineVRRig.slingshot.currentState == TransferrableObject.PositionState.InRightHand)
-                {
-                    if (Time.time > (float)Traverse.Create(GorillaTagger.Instance.offlineVRRig.slingshot).Field("minTimeToLaunch").GetValue()) // checks if its time to launch
-                    {
-                        // Customizable vars
-                        Vector3 position = GorillaLocomotion.Player.Instance.rightControllerTransform.position;
-                        Vector3 velocity = Vector3.zero;
-
-                        // Send networked projectile
-                        if (PhotonNetwork.InRoom) Util.SendLaunchProjectile(position, velocity, false, 1f, 1f, 1f, 1f);
-
-                        // Instantiate objects from object pool
-                        GameObject gameObject = ObjectPools.instance.Instantiate(PoolUtils.GameObjHashCode(GorillaTagger.Instance.offlineVRRig.slingshot.projectilePrefab));
-                        gameObject.transform.localScale = Vector3.one * Mathf.Abs(GorillaTagger.Instance.offlineVRRig.slingshot.gameObject.transform.lossyScale.x);
-                        Traverse.Create(GorillaTagger.Instance.offlineVRRig.slingshot).Method("AttachTrail", new object[] { PoolUtils.GameObjHashCode(GorillaTagger.Instance.offlineVRRig.slingshot.projectileTrail), gameObject, position, false, false });
-
-                        // Get and shoot projectile component
-                        SlingshotProjectile component = gameObject.GetComponent<SlingshotProjectile>();
-                        component.Launch(position, velocity, PhotonNetwork.LocalPlayer, false, false, 0, Mathf.Abs(GorillaTagger.Instance.offlineVRRig.slingshot.gameObject.transform.lossyScale.x));
-
-                        // Add delay till next projectile
-                        AccessTools.Field(typeof(Slingshot), "minTimeToLaunch").SetValue(GorillaTagger.Instance.offlineVRRig.slingshot, Time.time + 0.1f);
-                    }
-                }
-                else if (errorCooldown < Time.time)
-                {
-                    NotifiLib.SendNotification("Hold a slingshot.");
-                    errorCooldown = Time.time + 1;
-                }
-            }
-        }
-
-        // Projectile Spammer V2
-        public static void ProjectileSpammerV2()
-        {
-
+            GorillaTagger.Instance.offlineVRRig.slingshot.gameObject.SetActive(true);
         }
         #endregion
 
@@ -1292,15 +1087,17 @@ namespace Aspect.MenuLib
             {
                 if (silent == true) GorillaTagger.Instance.handTapVolume = 0f;
                 right = GameObject.CreatePrimitive(primitiveType);
-                right.AddComponent<Menu.ColorChanger>();
+                Menu.ColorChanger colorChanger = right.AddComponent<Menu.ColorChanger>();
                 right.AddComponent<GorillaSurfaceOverride>().overrideIndex = oIndex;
                 right.transform.localScale = size;
                 right.transform.position = GorillaLocomotion.Player.Instance.rightControllerTransform.transform.position + -GorillaLocomotion.Player.Instance.rightControllerTransform.transform.right / 20;
                 right.transform.rotation = GorillaLocomotion.Player.Instance.rightControllerTransform.transform.rotation;
+                //GorillaExtensions.SendNetworkedPlatform(right, false, sticky);
             }
             else if (!Input.instance.CheckButton(Input.ButtonType.grip, false) && right != null)
             {
                 if (silent == true && !Input.instance.CheckButton(Input.ButtonType.grip, true)) GorillaTagger.Instance.handTapVolume = 0.1f;
+                //GorillaExtensions.DeleteNetworkedPlatform(right, false);
                 UnityEngine.Object.Destroy(right);
                 right = null;
             }
@@ -1308,15 +1105,17 @@ namespace Aspect.MenuLib
             {
                 if (silent == true) GorillaTagger.Instance.handTapVolume = 0f;
                 left = GameObject.CreatePrimitive(primitiveType);
-                left.AddComponent<Menu.ColorChanger>();
+                Menu.ColorChanger colorChanger = left.AddComponent<Menu.ColorChanger>();
                 left.AddComponent<GorillaSurfaceOverride>().overrideIndex = oIndex;
                 left.transform.localScale = size;
                 left.transform.position = GorillaLocomotion.Player.Instance.leftControllerTransform.transform.position + GorillaLocomotion.Player.Instance.leftControllerTransform.transform.right / 20;
                 left.transform.rotation = GorillaLocomotion.Player.Instance.leftControllerTransform.transform.rotation;
+                //GorillaExtensions.SendNetworkedPlatform(left, true, sticky);
             }
             else if (!Input.instance.CheckButton(Input.ButtonType.grip, true) && left != null)
             {
                 if (silent == true && !Input.instance.CheckButton(Input.ButtonType.grip, false)) GorillaTagger.Instance.handTapVolume = 0.1f;
+                //GorillaExtensions.DeleteNetworkedPlatform(left, true);
                 UnityEngine.Object.Destroy(left);
                 left = null;
             }
@@ -1464,7 +1263,7 @@ namespace Aspect.MenuLib
         static bool secondaryPower = false;
         static bool checkPowerOnce = false;
         static bool resetVelocity = false;
-        public static void SuperMonkey(float speed = 16f, bool enable = true)
+        public static void SuperMonkey(bool enable = true, float speed = 16f)
         {
             // flight
             if (Input.instance.CheckButton(Input.ButtonType.secondary, false))
@@ -1548,7 +1347,7 @@ namespace Aspect.MenuLib
 
         // Wall Walk
         static RaycastHit latestHandInfo = new RaycastHit();
-        public static void WallWalk(float strength = 10, bool stateDepender = true)
+        public static void WallWalk(float stregnth = 10, bool stateDepender = true)
         {
             if (GorillaLocomotion.Player.Instance.IsHandTouching(true) || GorillaLocomotion.Player.Instance.IsHandTouching(false))
             {
@@ -1557,7 +1356,7 @@ namespace Aspect.MenuLib
 
             if (stateDepender && latestHandInfo.point != Vector3.zero && GorillaTagger.Instance.offlineVRRig.CheckDistance(latestHandInfo.point, 2))
             {
-                GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(latestHandInfo.normal * -strength * Util.GetFixedDeltaTime(), ForceMode.Acceleration);
+                GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.AddForce(latestHandInfo.normal * -stregnth * Util.GetFixedDeltaTime(), ForceMode.Acceleration);
             }
         }
 
@@ -1571,8 +1370,8 @@ namespace Aspect.MenuLib
         static bool IsTeleportCooldown = false;
         public static void TeleportGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
-            if (!IsTeleportCooldown && Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.point == new Vector3(0f, 0f, 0f))
+            RaycastHit hit = GorillaExtensions.GunTemplate();
+            if (!IsTeleportCooldown && Input.instance.CheckButton(Input.ButtonType.trigger, false))
             {
                 GorillaPatches.TeleportPatch.Teleport(hit.point + GorillaLocomotion.Player.Instance.rightControllerTransform.up);
                 IsTeleportCooldown = true;
@@ -1622,25 +1421,25 @@ namespace Aspect.MenuLib
             if (turnOff)
             {
                 // Reset arms
-                if (Update.leftPosOffset != Vector3.zero)
+                if (Update.lHandOffset != Vector3.zero)
                 {
-                    GorillaLocomotion.Player.Instance.leftHandOffset = Update.leftPosOffset;
+                    GorillaLocomotion.Player.Instance.leftHandOffset = Update.lHandOffset;
                 }
-                if (Update.rightPosOffset != Vector3.zero)
+                if (Update.rHandOffset != Vector3.zero)
                 {
-                    GorillaLocomotion.Player.Instance.rightHandOffset = Update.rightPosOffset;
+                    GorillaLocomotion.Player.Instance.rightHandOffset = Update.rHandOffset;
                 }
                 return;
             }
 
             // Get current armlength if you don't have it already
-            if (Update.leftPosOffset == Vector3.zero)
+            if (Update.lHandOffset == Vector3.zero)
             {
-                Update.leftPosOffset = GorillaLocomotion.Player.Instance.leftHandOffset;
+                Update.lHandOffset = GorillaLocomotion.Player.Instance.leftHandOffset;
             }
-            if (Update.rightPosOffset == Vector3.zero)
+            if (Update.rHandOffset == Vector3.zero)
             {
-                Update.rightPosOffset = GorillaLocomotion.Player.Instance.rightHandOffset;
+                Update.rHandOffset = GorillaLocomotion.Player.Instance.rightHandOffset;
             }
 
             // Set Longarms
@@ -1913,7 +1712,7 @@ namespace Aspect.MenuLib
 
                         LineRenderer web = rWeb.AddComponent<LineRenderer>(); // Add LineRenderer
 
-                        web.material.shader = RigManager.textShader; // Set material
+                        web.material.shader = Shader.Find("GUI/Text Shader"); // Set material
 
                         web.startWidth = 0.04f; // Set width of line
                         web.endWidth = 0.04f;
@@ -1958,7 +1757,7 @@ namespace Aspect.MenuLib
 
                         LineRenderer web = lWeb.AddComponent<LineRenderer>(); // Add LineRenderer
 
-                        web.material.shader = RigManager.textShader; // Set material
+                        web.material.shader = Shader.Find("GUI/Text Shader"); // Set material
 
                         web.startWidth = 0.04f; // Set width of line
                         web.endWidth = 0.04f;
@@ -1992,38 +1791,26 @@ namespace Aspect.MenuLib
         // Snipe Bug
         public static void SnipeBug()
         {
-            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
+            if (Input.instance.CheckButton(Input.ButtonType.grip, false) && GameObject.Find("Floating Bug Holdable").GetComponent<ThrowableBug>().IsGrabbable())
             {
-                GameObject.Find("Floating Bug Holdable").transform.position = GorillaLocomotion.Player.Instance.rightControllerTransform.gameObject.transform.position;
+                GorillaLocomotion.Player.Instance.rightControllerTransform.gameObject.transform.position = GameObject.Find("Floating Bug Holdable").transform.position;
             }
         }
 
         // Snipe Bat
         public static void SnipeBat()
         {
-            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
+            if (Input.instance.CheckButton(Input.ButtonType.grip, false) && GameObject.Find("Cave Bat Holdable").GetComponent<ThrowableBug>().IsGrabbable())
             {
-                GameObject.Find("Cave Bat Holdable").transform.position = GorillaLocomotion.Player.Instance.rightControllerTransform.gameObject.transform.position;
+                GorillaLocomotion.Player.Instance.rightControllerTransform.gameObject.transform.position = GameObject.Find("Cave Bat Holdable").transform.position;
             }
-        }
-
-        // Allow Stealing Doug
-        public static void AllowStealingDoug()
-        {
-            GameObject.Find("Floating Bug Holdable").GetComponent<ThrowableBug>().allowPlayerStealing = true;
-        }
-
-        // Allow Stealing Bat
-        public static void AllowStealingBat()
-        {
-            GameObject.Find("Cave Bat Holdable").GetComponent<ThrowableBug>().allowPlayerStealing = true;
         }
 
         // Platform Gun
         static float platformSpawnDelay = 0f;
         public static void PlatformGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
+            RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && platformSpawnDelay < Time.time)
             {
                 // create platform
@@ -2033,14 +1820,14 @@ namespace Aspect.MenuLib
                 platform.transform.localScale = new Vector3(0.001f, 0.2f, 0.2f);
                 platform.transform.position = hit.point;
                 GameObject.Destroy(platform, 1); // destroy platform after 1 second timer
-                platformSpawnDelay = Time.time + 0.02f; // add time to the timer
+                platformSpawnDelay = Time.time + 0.1f; // add time to the timer
             }
         }
 
         // Click Buttons Gun
         public static void ClickButtonsGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
+            RaycastHit hit = GorillaExtensions.GunTemplate(); 
             if (Input.instance.CheckButton(Input.ButtonType.trigger))
             {
                 GorillaTagger.Instance.leftHandTriggerCollider.transform.position = hit.point;
@@ -2050,7 +1837,7 @@ namespace Aspect.MenuLib
         // Control Bug
         public static void ControlBug()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
+            RaycastHit hit = GorillaExtensions.GunTemplate();
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false))
             {
                 GameObject.Find("Floating Bug Holdable").transform.position = hit.point;
@@ -2068,7 +1855,7 @@ namespace Aspect.MenuLib
                 {
                     UnityEngine.Random.Range(0, 254),
                     false,
-                    0.05f
+                    1f
                 });
             }
         }
@@ -2104,9 +1891,12 @@ namespace Aspect.MenuLib
         }
 
         // Grab Snowballs
-        public static void SnowOnGround()
+        public static void GrabSnowballs()
         {
-            GorillaLocomotion.Player.Instance.currentOverride.overrideIndex = 32;
+            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
+            {
+                GameObject.Find("SnowballRightAnchor/LMACF.").GetComponent<SnowballThrowable>().OnEnable();
+            }
         }
         #endregion
     }
@@ -2120,9 +1910,8 @@ namespace Aspect.MenuLib
         static GameObject gunPointer;
         static GameObject gunLine;
         static LineRenderer lineRenderer;
-        static VRRig lastRig = null;
 
-        public static RaycastHit GunTemplate(bool gunlock, bool destroyPointer = false, bool controlledFromPC = false, bool vibrateOnTarget = true)
+        public static RaycastHit GunTemplate(bool destroyPointer = false, bool controlledFromPC = false, bool vibrateOnTarget = true)
         {
             if (destroyPointer)
             {
@@ -2135,69 +1924,32 @@ namespace Aspect.MenuLib
             RaycastHit hit;
             if (Input.instance.CheckButton(Input.ButtonType.grip, false))
             {
-                // Raycast physics
                 if (controlledFromPC || Update.AllGunsOnPC)
                 {
-                    if (GorillaMods.isNoclipping)
-                    {
-                        Physics.Raycast(Update.thirdPersonCameraGO.GetComponent<Camera>().ScreenPointToRay(UnityInput.Current.mousePosition), out hit);
-                    }
-                    else
-                    {
-                        LayerMask combinedLayerMask = GorillaLocomotion.Player.Instance.locomotionEnabledLayers | 16384;
-                        Physics.Raycast(Update.thirdPersonCameraGO.GetComponent<Camera>().ScreenPointToRay(UnityInput.Current.mousePosition), out hit, float.PositiveInfinity, combinedLayerMask);
-                    }
+                    LayerMask combinedLayerMask = GorillaLocomotion.Player.Instance.locomotionEnabledLayers | 16384;
+                    Physics.Raycast(Update.thirdPersonCameraGO.GetComponent<Camera>().ScreenPointToRay(UnityInput.Current.mousePosition), out hit, float.PositiveInfinity, combinedLayerMask);
                 }
                 else
                 {
-                    if (gunlock)
-                    {
-                        RaycastHit hitInfo;
-                        Vector3 pointA = Vector3.zero;
-                        Vector3 pointB = Vector3.zero;
-
-                        // Get postions
-                        if (lastRig != null)
-                        {
-                            pointA = GorillaLocomotion.Player.Instance.rightControllerTransform.position;
-                            pointB = lastRig.transform.position;
-                        }
-
-                        // use gunlock if all the conditions are right
-                        if (lastRig != null && lastRig != GorillaTagger.Instance.offlineVRRig && !Physics.Raycast(pointA, pointB - pointA, out hitInfo, Vector3.Distance(pointA, pointB), GorillaLocomotion.Player.Instance.locomotionEnabledLayers))
-                        {
-                            LayerMask combinedLayerMask = GorillaLocomotion.Player.Instance.locomotionEnabledLayers | 16384;
-                            Physics.Raycast(pointA, pointB - pointA, out hit, float.PositiveInfinity, combinedLayerMask);
-                        }
-                        else // if any of the conditions isn't right use the normal gun
-                        {
-                            LayerMask combinedLayerMask = GorillaLocomotion.Player.Instance.locomotionEnabledLayers | 16384;
-                            Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position, -GorillaLocomotion.Player.Instance.rightControllerTransform.up, out hit, float.PositiveInfinity, combinedLayerMask);
-                        }
-                    }
-                    else // if gunlock is not true
-                    {
-                        LayerMask combinedLayerMask = GorillaLocomotion.Player.Instance.locomotionEnabledLayers | 16384;
-                        Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position, -GorillaLocomotion.Player.Instance.rightControllerTransform.up, out hit, float.PositiveInfinity, combinedLayerMask);
-                    }
+                    LayerMask combinedLayerMask = GorillaLocomotion.Player.Instance.locomotionEnabledLayers | 16384;
+                    Physics.Raycast(GorillaLocomotion.Player.Instance.rightControllerTransform.position, -GorillaLocomotion.Player.Instance.rightControllerTransform.up, out hit, float.PositiveInfinity, combinedLayerMask);
                 }
-
                 if (gunPointer == null)
                 {
-                    // Create pointer
                     gunPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                     UnityEngine.Object.Destroy(gunPointer.GetComponent<Collider>());
                     UnityEngine.Object.Destroy(gunPointer.GetComponent<Rigidbody>());
-                    gunPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    gunPointer.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                     Menu.ColorChanger colorChanger = gunPointer.AddComponent<Menu.ColorChanger>();
-                    colorChanger.shader = RigManager.textShader;
+                    colorChanger.Color1 = new Color32(85, 15, 150, 1);
+                    colorChanger.Color2 = new Color32(125, 15, 200, 1);
+                    colorChanger.shader = Shader.Find("GUI/Text Shader");
 
-                    // Create line
                     gunLine = new GameObject("Line");
                     lineRenderer = gunLine.AddComponent<LineRenderer>();
-                    lineRenderer.material.shader = RigManager.textShader;
-                    lineRenderer.startWidth = 0.02f;
-                    lineRenderer.endWidth = 0.02f;
+                    lineRenderer.material.shader = Shader.Find("GUI/Text Shader");
+                    lineRenderer.startWidth = 0.025f;
+                    lineRenderer.endWidth = 0.025f;
                     lineRenderer.startColor = colorChanger.Color1;
                     lineRenderer.endColor = colorChanger.Color1;
                     lineRenderer.SetPosition(0, GorillaTagger.Instance.rightHandTransform.position);
@@ -2206,42 +1958,23 @@ namespace Aspect.MenuLib
                     gunPointer.transform.position = hit.point;
                     return hit;
                 }
-
-                // Update line
                 lineRenderer.startColor = Color.black;
                 lineRenderer.endColor = gunPointer.GetComponent<Renderer>().material.color;
                 lineRenderer.SetPosition(0, GorillaTagger.Instance.rightHandTransform.position);
                 lineRenderer.SetPosition(1, gunPointer.transform.position);
 
-                // action when pointer is on another rig
-                if (hit.collider.GetComponentInParent<VRRig>() != null && !Update.AllGunsOnPC)
-                {
-                    // Check if controllers should vibrate
-                    if (vibrateOnTarget)
-                    {
-                        GorillaTagger.Instance.DoVibration(UnityEngine.XR.XRNode.RightHand, 0.1f, 0.01f);
-                    }
+                if (vibrateOnTarget && hit.collider.GetComponentInParent<VRRig>() != null && !Update.AllGunsOnPC) GorillaTagger.Instance.DoVibration(UnityEngine.XR.XRNode.RightHand, 0.1f, 0.01f);
 
-                    // Check if should gunlock
-                    if (lastRig != hit.collider.GetComponentInParent<VRRig>())
-                    {
-                        lastRig = hit.collider.GetComponentInParent<VRRig>();
-                    }
-                }
-
-                // Update gunpointer position
                 gunPointer.transform.position = hit.point;
-
-                // Return RaycastHit
                 return hit;
             }
 
-            lastRig = null;
             UnityEngine.Object.Destroy(gunPointer);
             gunPointer = null;
             UnityEngine.Object.Destroy(gunLine);
+            gunLine = null;
             UnityEngine.Object.Destroy(lineRenderer);
-
+            lineRenderer = null;
             Physics.Raycast(new Vector3(0, 0, 0), new Vector3(0, -1, 0), out hit);
 
             return hit;
@@ -2283,6 +2016,101 @@ namespace Aspect.MenuLib
             }
         }
 
+        // Platform Network
+        /*public static void SendNetworkedPlatform(GameObject platform, bool left, bool sticky)
+        {
+            if (platform != null)
+            {
+                if (left)
+                {
+                    object[] eventContent = new object[]
+                    {
+                        platform.transform.position,
+                        platform.transform.rotation
+                    };
+                    RaiseEventOptions raiseEventOptions = new RaiseEventOptions
+                    {
+                        Receivers = ReceiverGroup.Others
+                    };
+                    PhotonNetwork.RaiseEvent(69, eventContent, raiseEventOptions, SendOptions.SendReliable);
+                }
+                else
+                {
+                    object[] eventContent = new object[]
+                    {
+                        platform.transform.position,
+                        platform.transform.rotation
+                    };
+                    RaiseEventOptions raiseEventOptions = new RaiseEventOptions
+                    {
+                        Receivers = ReceiverGroup.Others
+                    };
+                    PhotonNetwork.RaiseEvent(70, eventContent, raiseEventOptions, SendOptions.SendReliable);
+                }
+            }
+        }
+
+        public static void DeleteNetworkedPlatform(GameObject platform, bool left)
+        {
+            if (platform != null)
+            {
+                if (left)
+                {
+                    RaiseEventOptions raiseEventOptions = new RaiseEventOptions
+                    {
+                        Receivers = ReceiverGroup.Others
+                    };
+                    PhotonNetwork.RaiseEvent(71, null, raiseEventOptions, SendOptions.SendReliable);
+                }
+                else
+                {
+                    RaiseEventOptions raiseEventOptions = new RaiseEventOptions
+                    {
+                        Receivers = ReceiverGroup.Others
+                    };
+                    PhotonNetwork.RaiseEvent(72, null, raiseEventOptions, SendOptions.SendReliable);
+                }
+            }
+        }
+
+        private static Dictionary<int, GameObject> leftPlatforms = new Dictionary<int, GameObject>();
+        private static Dictionary<int, GameObject> rightPlatforms = new Dictionary<int, GameObject>();
+        public static void PlatformNetwork(EventData eventData)
+        {
+            switch (eventData.Code)
+            {
+                case 69:
+                    object[] data1 = (object[])eventData.CustomData; // Get platformdata
+                    leftPlatforms[eventData.Sender] = GameObject.CreatePrimitive(PrimitiveType.Cube); // Create platform from platformdata
+                    GameObject.Destroy(leftPlatforms[eventData.Sender].GetComponent<Rigidbody>());
+                    leftPlatforms[eventData.Sender].AddComponent<Menu.ColorChanger>();
+                    leftPlatforms[eventData.Sender].AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
+                    leftPlatforms[eventData.Sender].transform.localScale = new Vector3(0.001f, 0.2f, 0.2f);
+                    leftPlatforms[eventData.Sender].transform.position = (Vector3)data1[0];
+                    leftPlatforms[eventData.Sender].transform.rotation = (Quaternion)data1[1];
+                    break;
+                case 70:
+                    object[] data2 = (object[])eventData.CustomData;
+                    rightPlatforms[eventData.Sender] = GameObject.CreatePrimitive(PrimitiveType.Cube); // Create platform from platformdata
+                    GameObject.Destroy(rightPlatforms[eventData.Sender].GetComponent<Rigidbody>());
+                    rightPlatforms[eventData.Sender].AddComponent<Menu.ColorChanger>();
+                    rightPlatforms[eventData.Sender].AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
+                    rightPlatforms[eventData.Sender].transform.localScale = new Vector3(0.001f, 0.2f, 0.2f);
+                    rightPlatforms[eventData.Sender].transform.position = (Vector3)data2[0];
+                    rightPlatforms[eventData.Sender].transform.rotation = (Quaternion)data2[1];
+                    break;
+                case 71:
+                    GameObject.Destroy(leftPlatforms[eventData.Sender]);
+                    leftPlatforms[eventData.Sender] = null;
+                    break;
+                case 72:
+                    GameObject.Destroy(rightPlatforms[eventData.Sender]);
+                    rightPlatforms[eventData.Sender] = null;
+                    break;
+            }
+        }*/
+
+        // Report Network
         public static void ReportNetwork(EventData eventData)
         {
             if (eventData.Code == 50)
@@ -2362,7 +2190,6 @@ namespace Aspect.MenuLib
     /// </summary>
     class GorillaPatches
     {
-
         [HarmonyPatch(typeof(GorillaLocomotion.Player), "AntiTeleportTechnology")]
         internal class AntiTeleportPatch
         {
@@ -2457,7 +2284,7 @@ namespace Aspect.MenuLib
                         rigWhenDisabled = GameObject.Instantiate(GorillaTagger.Instance.offlineVRRig.gameObject);
                         rigWhenDisabled.GetComponent<VRRig>().enabled = true;
                         rigWhenDisabled.GetComponent<VRRig>().mainSkin.material.SetColor("_Color", new Color(1f, 1f, 1f, 0.3f));
-                        rigWhenDisabled.GetComponent<VRRig>().mainSkin.material.shader = RigManager.textShader;
+                        rigWhenDisabled.GetComponent<VRRig>().mainSkin.material.shader = Shader.Find("GUI/Text Shader");
                         GorillaMods.SetHandtapVolume(0f);
                         Menu.RefreshMenu(Update.menu);
                     }
@@ -2493,7 +2320,7 @@ namespace Aspect.MenuLib
             {
                 if (name == "_Color")
                 {
-                    __instance.shader = RigManager.uberShader;
+                    __instance.shader = Shader.Find("GorillaTag/UberShader");
                     __instance.color = value;
                     return;
                 }

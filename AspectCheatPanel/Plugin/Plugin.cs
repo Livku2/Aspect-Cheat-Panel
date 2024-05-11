@@ -5,8 +5,7 @@ using HarmonyLib;
 using Photon.Pun;
 using System.Reflection;
 using UnityEngine;
-// ALL UTILLA RELATED STUFF IS COMMENTED OUT RN BECAUSE THE MENU HAS NO NEED FOR IT ATM
-//using Utilla;
+using Utilla;
 using UnityEngine.InputSystem;
 using System.Linq;
 using Aspect.Utilities;
@@ -18,14 +17,14 @@ namespace Aspect.Plugin
     /// This class handles applying harmony patches to the game, and handles the monke UI.
     /// </summary>
     [BepInPlugin(modGUID, modName, modVersion)]
-    //[BepInDependency("org.legoandmars.gorillatag.utilla", "1.5.0")] // Make sure to add Utilla 1.5.0 as a dependency!
-    //[ModdedGamemode]
+    [BepInDependency("org.legoandmars.gorillatag.utilla", "1.5.0")] // Make sure to add Utilla 1.5.0 as a dependency!
+    [ModdedGamemode]
     public class Plugin : BaseUnityPlugin
     {
         // Plugin data
         private const string modGUID = "aspect.cheat.panel";
-        public const string modVersion = "6.2.5";
-        private const string modName = "Aspect Cheat Panel";
+        public const string modVersion = "6.2.3";
+        private const string modName = "Aspect - Cheat Panel v6.2.3";
 
         private static Harmony harmony;
         public static bool Patched { get; private set; } = false;
@@ -54,7 +53,7 @@ namespace Aspect.Plugin
             }
         }
 
-        // This is totally not hooking the menu update :sob:
+        // Run menu-update
         private void LateUpdate()
         {
             if (Patched && GorillaLocomotion.Player.Instance)
@@ -74,7 +73,7 @@ namespace Aspect.Plugin
         private int GUICooldown;
         private bool IsOpen = false;
         private string Name = "name to change to";
-        private string[] Categorys = { "Info", "Room", "Settings", "Buttons" };
+        private string[] Categorys = { "Info", "Room", "Buttons" };
         private int CurrentCategory = 0;
         private float R = 1f;
         private float G = 1f;
@@ -175,18 +174,8 @@ namespace Aspect.Plugin
                     GUILayout.EndScrollView(); // End scrollview
                     break;
 
-                // SETTINGS
-                case 2:
-                    scrollPosition = GUILayout.BeginScrollView(scrollPosition); // Begin the scroll view
-
-                    GUILayout.Label("coming soon");
-
-                    // End the scroll view
-                    GUILayout.EndScrollView();
-                    break;
-
                 // BUTTONS
-                case 3:
+                case 2:
                     scrollPosition = GUILayout.BeginScrollView(scrollPosition); // Begin the scroll view
 
                     GUI.backgroundColor = Color.red; // Set gui color
@@ -195,6 +184,7 @@ namespace Aspect.Plugin
                     GUILayout.Label($"Keyboard Movement Speed: {(int)MovementSpeedWASD}");
                     MovementSpeedWASD = GUILayout.HorizontalSlider(MovementSpeedWASD, 1, 20);
                     DoKeyboardMovement = GUILayout.Toggle(DoKeyboardMovement, "Keyboard Movement");
+                    clickStuffWithMouse = GUILayout.Toggle(clickStuffWithMouse, "Click Ingame Buttons");
 
                     // Add menubuttons to gui
                     Menu.ButtonTemplate[] Buttons = MenuLib.Update.menu.FavoritedMods.Concat(MenuLib.Update.menu.Buttons).ToArray();
@@ -202,49 +192,35 @@ namespace Aspect.Plugin
                     {
                         Menu.ButtonTemplate button = Buttons[i]; // Get button
 
-                        GUI.backgroundColor = button.IsFavorited ? Color.yellow : button.ButtonState ? Color.green : Color.red; // Handle button colors
+                        if (!button.IsFavorited) GUI.backgroundColor = button.ButtonState ? Color.green : Color.red; // Handle button colors
+                        else if (button.IsFavorited) GUI.backgroundColor = Color.yellow;
 
                         if (GUILayout.Button(button.Text)) // Create GUI button
                         {
                             MenuLib.Update.AllGunsOnPC = true; // Turn on PC guns for gun-mods
 
                             if (button.Toggle) button.ButtonState = !button.ButtonState; // turn on/off button
-                            //if (Aspect.MenuLib.Input.instance.CheckButton(MenuLib.Input.ButtonType.grip)) Menu.FavoriteButton(button, Aspect.MenuLib.Update.menu, !button.IsFavorited); // Favorite mod
+                            if (Aspect.MenuLib.Input.instance.CheckButton(MenuLib.Input.ButtonType.grip)) Menu.FavoriteButton(button, Aspect.MenuLib.Update.menu, !button.IsFavorited); // Favorite mod
 
                             // Check and run mods
                             try
                             {
-                                if (button.Toggle)
+                                if (button.ButtonState || !button.Toggle)
                                 {
-                                    if (!button.ButtonState)
+                                    if (button.OnEnable != null)
                                     {
-                                        if (button.OnDisable != null) button.OnDisable.Invoke();
-                                        if (button.ExtraValueText != MenuLib.Update.menu.ExtraNameValues[button].ToString())
-                                        {
-                                            button.ExtraValueText = MenuLib.Update.menu.ExtraNameValues[button].ToString();
-                                        }
-                                        MenuLib.Update.menu.EnabledButtons.Remove(button);
+                                        button.OnEnable.Invoke();
                                     }
-                                    else
+                                    if (button.OnUpdate != null)
                                     {
-                                        if (button.OnEnable != null) button.OnEnable.Invoke();
-                                        if (button.OnUpdate != null) button.OnUpdate.Invoke();
-                                        if (button.ExtraValueText != MenuLib.Update.menu.ExtraNameValues[button].ToString())
-                                        {
-                                            button.ExtraValueText = MenuLib.Update.menu.ExtraNameValues[button].ToString();
-                                        }
-                                        MenuLib.Update.menu.EnabledButtons.Add(button);
+                                        button.OnUpdate.Invoke();
                                     }
                                 }
                                 else
                                 {
-                                    if (button.OnUpdate != null) button.OnUpdate.Invoke();
-                                    if (!button.CategoryButton && button.Text != "Disconnect" && !button.Text.Contains("<") && !button.Text.Contains(">"))
+                                    if (button.OnDisable != null)
                                     {
-                                        if (button.ExtraValueText != MenuLib.Update.menu.ExtraNameValues[button].ToString())
-                                        {
-                                            button.ExtraValueText = MenuLib.Update.menu.ExtraNameValues[button].ToString();
-                                        }
+                                        button.OnDisable.Invoke();
                                     }
                                 }
 
@@ -254,14 +230,11 @@ namespace Aspect.Plugin
                                     string color = !button.ButtonState ? "green" : "red";
                                     if (!button.Toggle) color = "green";
                                     string text = $"[<color={color}>{button.Text}</color>] {button.Description}";
-                                    Board.SetBoardText($"Aspect Cheat Panel {modVersion}", MenuLib.Update.GetBoardText(MenuLib.Update.menu, $"\n\nCurrent Mod:\n{text}", true));
-                                    if (MenuLib.Update.tooltipNotification) NotifiLib.SendNotification(text);
+                                    Board.SetBoardText($"Aspect Cheat Panel {modVersion}", MenuLib.Update.GetBoardText(MenuLib.Update.menu, $"\n\nCurrent Mod:\n{text}"));
+                                    NotifiLib.SendNotification(text);
                                 }
                             }
-                            catch (Exception ex)
-                            {
-                                Menu.SendError(ex);
-                            }
+                            catch { }
                             Menu.RefreshMenu(MenuLib.Update.menu); // Refresh to update the menu
                         }
                         GUI.backgroundColor = Color.white; // Reset gui color
@@ -280,6 +253,7 @@ namespace Aspect.Plugin
             // Make the window draggable
             GUI.DragWindow(new Rect(0, 0, windowRect.width, 20));
         }
+
 
         void Update()
         {
@@ -311,10 +285,10 @@ namespace Aspect.Plugin
             }
         }
 
-        // Utilla stuff is commented out rn because the menu has no need for them
+        // Utilla Stuff
         public static bool inAllowedRoom = false;
 
-        /*[ModdedGamemodeJoin]
+        [ModdedGamemodeJoin]
         private void RoomJoined(string gamemode)
         {
             // The room is modded. Enable mod stuff.
@@ -326,6 +300,6 @@ namespace Aspect.Plugin
         {
             // The room was left. Disable mod stuff.
             inAllowedRoom = false;
-        }*/
+        }
     }
 }

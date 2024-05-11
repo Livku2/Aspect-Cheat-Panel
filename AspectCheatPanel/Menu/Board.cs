@@ -1,6 +1,4 @@
-﻿using Aspect.Plugin;
-using System.Linq;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace Aspect.MenuLib
@@ -27,33 +25,39 @@ namespace Aspect.MenuLib
             component.localPosition = new Vector3(-56.2008f, -63f, 0.0002f);
         }
 
-        static string[] screens;
         public static void SetBoardColor(Color color1, Color color2)
         {
             // include all screen in the game asap - done (mostly)
-            screens = new string[] {
+            string[] screens = {
                 "wallmonitorcanyon",
                 "wallmonitorcosmetics",
                 "wallmonitorcave",
                 "wallmonitorforest",
-                "wallmonitorskyjungle",
-                "forestatlas (combined by EdMeshCombinerSceneProcessor)"
+                "wallmonitorskyjungle"
             };
-
-            // color the board given
             for (int i = 0; i < screens.Length; i++)
             {
                 // skip if screen doesnt exist
                 if (!GameObject.Find(screens[i])) continue;
-
                 // set custom material
                 Material material = new Material(Shader.Find("Standard"));
                 GameObject.Find(screens[i]).GetComponent<Renderer>().material = material;
 
-                // initialize colorchanger
+                //initialize colorchanger
                 Menu.ColorChanger colorChanger = GameObject.Find(screens[i]).AddComponent<Menu.ColorChanger>();
-                colorChanger.Color1 = color1;
-                colorChanger.Color2 = color2;
+            }
+
+            foreach (GameObject obj in UnityEngine.Object.FindObjectsOfType<GameObject>())
+            {
+                if (obj.name.Contains("forestatlas") && obj.transform.parent.name == "TreeRoom" && obj.GetInstanceID() == 94332)
+                {
+                    // set custom material
+                    Material material = new Material(Shader.Find("Standard"));
+                    obj.GetComponent<Renderer>().material = material;
+
+                    //initialize colorchanger
+                    Menu.ColorChanger colorChanger = obj.AddComponent<Menu.ColorChanger>();
+                }
             }
         }
     }
