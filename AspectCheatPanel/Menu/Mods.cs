@@ -1198,7 +1198,7 @@ namespace Aspect.MenuLib
                 VRRig rig = GorillaTagger.Instance.offlineVRRig;
                 if (rig.enabled) rig.enabled = false;
 
-                rig.transform.position = GorillaLocomotion.Player.Instance.gameObject.transform.position;
+                rig.transform.position = GorillaLocomotion.Player.Instance.headCollider.transform.position;
                 rig.transform.rotation = GorillaLocomotion.Player.Instance.bodyCollider.transform.rotation;
             }
             else
@@ -1216,7 +1216,7 @@ namespace Aspect.MenuLib
                 VRRig rig = GorillaTagger.Instance.offlineVRRig;
                 if (rig.enabled) rig.enabled = false;
 
-                rig.transform.position = GorillaLocomotion.Player.Instance.gameObject.transform.position;
+                rig.transform.position = GorillaLocomotion.Player.Instance.headCollider.transform.position;
                 rig.transform.rotation = Quaternion.Euler(rig.transform.rotation.eulerAngles + new Vector3(0, 15, 0));
             }
             else
