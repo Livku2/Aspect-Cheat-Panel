@@ -1,10 +1,11 @@
-﻿using GorillaExtensions;
+﻿using Aspect.MenuLib;
+using ExitGames.Client.Photon;
 using GorillaNetworking;
 using HarmonyLib;
 using Photon.Pun;
+using Photon.Realtime;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Aspect.Utilities
 {
@@ -13,6 +14,35 @@ namespace Aspect.Utilities
     /// </summary>
     public static class Util
     {
+        // Send Projectile - taken straight from RoomSystem
+        static int projectileCount = 0;
+        public static void SendLaunchProjectile(Vector3 position, Vector3 velocity, bool randomColour, float r, float g, float b, float a)
+        {
+            projectileCount = 0; //(int)AccessTools.Method("ProjectileTracker:IncrementLocalPlayerProjectileCount").Invoke(null, null);
+            object[] sendData = new object[]
+            {
+                position,
+                velocity,
+                0,
+                projectileCount,
+                randomColour,
+                r, g, b, a
+            };
+            RaiseEventOptions reoOthers = new RaiseEventOptions
+            {
+                Receivers = ReceiverGroup.Others
+            };
+            SendOptions soUnreliable = SendOptions.SendUnreliable;
+            SendEvent(0, sendData, reoOthers, soUnreliable);
+        }
+
+        // Send Event - also taken straight from RoomSystem
+        internal static void SendEvent(in byte code, in object evData, in RaiseEventOptions reo, in SendOptions so)
+        {
+            object[] DataToSend = new object[] { PhotonNetwork.ServerTimestamp, code, evData };
+            PhotonNetwork.RaiseEvent(3, DataToSend, reo, so);
+        }
+
         // Change color
         public static void ChangeColor(float R, float G, float B, bool local = false)
         {
@@ -117,6 +147,12 @@ namespace Aspect.Utilities
         {
             return Time.deltaTime * 80f;
         }
+
+        // Get pos between
+        public static Vector3 PosBetween(Vector3 pos1, Vector3 pos2)
+        {
+            return pos1 + (pos1 - pos2);
+        }
     }
 
     /// <summary>
@@ -124,6 +160,10 @@ namespace Aspect.Utilities
     /// </summary>
     public static class RigManager
     {
+        // shaders
+        public static Shader textShader = Shader.Find("GUI/Text Shader");
+        public static Shader uberShader = Shader.Find("GorillaTag/UberShader");
+
         // material names
         public static string it = "It";
         public static string infected = "infected";
@@ -138,6 +178,18 @@ namespace Aspect.Utilities
         public static string orangehit = "orangehit";
         public static string paintsplatterorange = "paintsplattersmallorange";
         public static string sodainfected = "SodaInfected";
+
+        // material colors
+        public static Color taggedColor = new Color(255f / 255f, 0f / 255f, 0f / 255f, 0.3f);
+        public static Color casualColor = new Color(0f / 255f, 255f / 255f, 0f / 255f, 0.3f);
+        public static Color huntedColor = new Color(0f / 255f, 128f / 255f, 255f / 255f, 0.3f);
+        public static Color sodaInfected = new Color(0f / 255f, 255f / 255, 128f / 255, 0.3f);
+        public static Color blueAlive = new Color(0f / 255f, 128f / 255f, 255f / 255f, 0.3f);
+        public static Color blueHit = new Color(0f / 255f, 64f / 255f, 255f / 255f, 0.3f);
+        public static Color bluepaintsplatter = new Color(0f / 255f, 0f / 255f, 255f / 255f, 0.3f);
+        public static Color orangeAlive = new Color(255f / 255f, 128f / 255f, 0f / 255f, 0.3f);
+        public static Color orangeHit = new Color(255f / 255f, 64f / 255f, 0f / 255f, 0.3f);
+        public static Color orangepaintsplatter = new Color(255f / 255f, 0f / 255f, 0f / 255f, 0.3f);
 
         public static PhotonView VRRigToPhotonView(VRRig rig)
         {
