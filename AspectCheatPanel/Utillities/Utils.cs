@@ -18,7 +18,7 @@ namespace Aspect.Utilities
         static int projectileCount = 0;
         public static void SendLaunchProjectile(Vector3 position, Vector3 velocity, bool randomColour, float r, float g, float b, float a)
         {
-            projectileCount = 0; //(int)AccessTools.Method("ProjectileTracker:IncrementLocalPlayerProjectileCount").Invoke(null, null);
+            projectileCount = (int)AccessTools.Method("ProjectileTracker:IncrementLocalPlayerProjectileCount").Invoke(null, null);
             object[] sendData = new object[]
             {
                 position,
@@ -245,6 +245,24 @@ namespace Aspect.Utilities
             {
                 if (rig == myRig || CurrentGameMode() != "INFECTION" || !IsTagged(rig)) continue;
 
+                if (Vector3.SqrMagnitude(myRig.transform.position - rig.transform.position) < closestYet)
+                {
+                    closest = rig;
+                    closestYet = Vector3.SqrMagnitude(myRig.transform.position - rig.transform.position);
+                }
+            }
+
+            return closest;
+        }
+
+        public static VRRig GetClosest()
+        {
+            VRRig myRig = GorillaTagger.Instance.offlineVRRig;
+            VRRig closest = myRig;
+            float closestYet = float.MaxValue;
+
+            foreach (VRRig rig in GorillaParent.instance.vrrigs)
+            {
                 if (Vector3.SqrMagnitude(myRig.transform.position - rig.transform.position) < closestYet)
                 {
                     closest = rig;

@@ -9,7 +9,6 @@ using Photon.Pun;
 using GorillaNetworking;
 using static Aspect.MenuLib.Menu;
 using Aspect.Plugin;
-using UnityEngine.Animations.Rigging;
 
 namespace Aspect.MenuLib
 {
@@ -25,7 +24,7 @@ namespace Aspect.MenuLib
     /// If you want further instructions on what the different button-variables do,
     /// go into Menu.ButtonTemplates.
     /// </summary>
-    internal static class Update
+    public class Update
     {
         // Returns appropriate board text
         public static string GetBoardText(Menu.MenuTemplate menu, string text = "", bool buttonToggle = false)
@@ -77,13 +76,12 @@ namespace Aspect.MenuLib
             return string.Join("", boardTextArray).ToUpper();
         }
 
-        // Font(s)
-        public static Font menuTitleFont { get; private set; }
-        public static Font menuButtonFont { get; private set; }
-
         // Menu variables
         public static Menu.MenuTemplate menu;
         public static bool isSetup = false;
+
+        // GUI variables
+        public static bool ShowEnabledButtons = true;
 
         // Gun variables
         public static bool AllGunsOnPC = false;
@@ -102,12 +100,13 @@ namespace Aspect.MenuLib
         public static bool tooltipNotification = true;
 
         // Rig
-        public static Vector3 defaultHeadRot;
+        public static Vector3 defaultHeadRotOffset;
         public static Vector3 rightHandOffset;
         public static Vector3 leftHandOffset;
 
-        public static void Run_OnUpdate(Player __instance)
+        public static void update()
         {
+            Player __instance = GorillaLocomotion.Player.Instance;
             // If this is true, the menu won't run
             bool extraStateDepender = true;
 
@@ -133,16 +132,12 @@ namespace Aspect.MenuLib
                     }
 
                     // Get default rig vars
-                    defaultHeadRot = GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset;
+                    defaultHeadRotOffset = GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset;
                     rightHandOffset = GorillaTagger.Instance.offlineVRRig.rightHand.trackingRotationOffset;
                     leftHandOffset = GorillaTagger.Instance.offlineVRRig.leftHand.trackingRotationOffset;
 
                     // Initialize ESP colorways
                     GorillaMods.SetupColorways();
-
-                    // Initialize fonts
-                    menuTitleFont = Font.CreateDynamicFontFromOSFont("Agency FB", 24);
-                    menuButtonFont = Font.CreateDynamicFontFromOSFont("Agency FB", 20);
 
                     // Create menu
                     menu = Menu.MenuTemplate.CreateMenu(
@@ -152,7 +147,12 @@ namespace Aspect.MenuLib
                         __instance.leftControllerTransform.gameObject,
                         true
                     );
+
+                    // Set up themes
                     menu.SetupMenuThemes();
+
+                    // Set font
+                    menu.font = Font.CreateDynamicFontFromOSFont("Agent FB", 20);
 
                     // CREATE CATEGORIES
                     List<CategoryTemplate> Settings = new List<CategoryTemplate>() // Create SETTINGS category
@@ -163,6 +163,7 @@ namespace Aspect.MenuLib
                             ID = "MENU_SETTING_1",
                             ButtonList = new List<ButtonTemplate>
                             {
+                                new Menu.ButtonTemplate { Text = "Show Enabled Buttons", OnUpdate = () => { ShowEnabledButtons = !ShowEnabledButtons; menu.ExtraNameValues[Menu.GetButtonFromName("", menu)] = ShowEnabledButtons; }, ExtraValueText = ShowEnabledButtons.ToString(), Description = "Makes the enabled buttons text show up on your pc screen." },
                                 new Menu.ButtonTemplate { Text = "Change Menu Theme", OnUpdate = () => { menu.ExtraNameValues[Menu.GetButtonFromName("Change Menu Theme", menu)] = menu.ChangeMenuTheme(); }, ExtraValueText = (string)menu.menuThemes[menu.menuTheme][1], Toggle = false, Description = "Change the theme of the mod menu." },
                                 new Menu.ButtonTemplate { Text = "Tooltip Notifications", OnUpdate = () => { tooltipNotification = !tooltipNotification; menu.ExtraNameValues[Menu.GetButtonFromName("Tooltip Notifications", menu)] = tooltipNotification.ToString(); }, Toggle = false, ExtraValueText = tooltipNotification.ToString(), Description = "Turns off the tooltip notifications that's getting send every time you click a button." },
                                 new Menu.ButtonTemplate { Text = "Unlock Framerate", OnEnable = () => GorillaMods.UnlockFramrate(), OnDisable = () => GorillaMods.UnlockFramrate(true), Description = "Unlocks framerate" },
@@ -276,6 +277,10 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Fast Super Monkey", OnUpdate = () => GorillaMods.SuperMonkey(ConfigManager.SUPERMONKEYSPEED.Value * 0.571f), OnDisable = () => GorillaMods.SuperMonkey(0f, false), Description = "Seconday to fly, Primary to activate low gravity." },
                             new Menu.ButtonTemplate { Text = "Low Gravity", OnUpdate = () => GorillaMods.ChangeGravity(false), OnDisable = () => GorillaMods.ChangeGravity(true), Description = "Sets low gravity." },
                             new Menu.ButtonTemplate { Text = "High Gravity", OnUpdate = () => GorillaMods.ChangeGravity(false, 20f), OnDisable = () => GorillaMods.ChangeGravity(true), Description = "Sets high gravity." },
+                            new Menu.ButtonTemplate { Text = "Better Slide Control", OnUpdate = () => GorillaMods.SetSlideControl(0.7f), OnDisable = () => GorillaMods.SetSlideControl(0, true), Description = "Gives you better control over where you sliding on the ice in mountains." },
+                            new Menu.ButtonTemplate { Text = "Complete Slide Control", OnUpdate = () => GorillaMods.SetSlideControl(1f), OnDisable = () => GorillaMods.SetSlideControl(0, true), Description = "Gives you complete control over where your going on the ice in mountains." },
+                            new Menu.ButtonTemplate { Text = "Force No Slide", OnEnable = () => { GorillaPatches.forceNoSlide = true; }, OnDisable = () => { GorillaPatches.forceNoSlide = false; }, Description = "Forces slippery materials to not be slippery." },
+                            new Menu.ButtonTemplate { Text = "Force Slide", OnEnable = () => { GorillaPatches.forceSlide = true; }, OnDisable = () => { GorillaPatches.forceSlide = false; }, Description = "Forces not slippery materials to be slippery." },
                             new Menu.ButtonTemplate { Text = "Silent Handtaps", OnUpdate = () => GorillaMods.SetHandtapVolume(0f), OnDisable = () => GorillaMods.SetHandtapVolume(), Description = "Makes your steps not make a single sound!" },
                             new Menu.ButtonTemplate { Text = "Loud Handtaps", OnUpdate = () => GorillaMods.SetHandtapVolume(1f), OnDisable = () => GorillaMods.SetHandtapVolume(), Description = "Makes your steps very, very loud!" },
                             new Menu.ButtonTemplate { Text = "Speedboost (7.2)", OnUpdate = () => GorillaMods.Speedboost(7.2f, 1.1f), OnDisable = () => GorillaMods.Speedboost(0, 0, true), Description = "Makes you go faster unnoticeable." },
@@ -294,10 +299,12 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Longarms", OnUpdate = () => GorillaMods.LongArms(Vector3.forward / 8, Vector3.forward / 8), OnDisable = () => GorillaMods.LongArms(Vector3.zero, Vector3.zero, true), Description = "Gives you longarms, like your controllers are on sticks." },
                             new Menu.ButtonTemplate { Text = "Legit Longarms", OnUpdate = () => GorillaMods.LongArms(Vector3.forward / 40, Vector3.forward / 40), OnDisable = () => GorillaMods.LongArms(Vector3.zero, Vector3.zero, true), Description = "Gives you unnoticeable longarms, like your controllers are on sticks." },
                             new Menu.ButtonTemplate { Text = "C4", OnUpdate = () => GorillaMods.C4(), OnDisable = () => GorillaMods.C4(0, true), Description = "Left grip to plant, and right grip to detonate." },
-                            new Menu.ButtonTemplate { Text = "Spider Monkey [OLD AND BUGGY]", OnUpdate = () => GorillaMods.SpiderMonkey(), OnDisable = () => GorillaMods.SpiderMonkey(true), Description = "Makes you swing from brach to branch, with high velocitys." },
+                            new Menu.ButtonTemplate { Text = "Spider Monkey [OLD]", OnUpdate = () => GorillaMods.SpiderMonkey(), OnDisable = () => GorillaMods.SpiderMonkey(true), Description = "Makes you swing from brach to branch, with high velocitys." },
                             new Menu.ButtonTemplate { Text = "New Spider Monkey", OnUpdate = () => GorillaMods.NewSpiderMonkey(true, true), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs, and swing around." },
                             new Menu.ButtonTemplate { Text = "Left Web Shooter", OnUpdate = () => GorillaMods.NewSpiderMonkey(true, false), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs and swing with left hand only." },
-                            new Menu.ButtonTemplate { Text = "Right Web Shooter", OnUpdate = () => GorillaMods.NewSpiderMonkey(false, true), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs and swing with right hand only." }
+                            new Menu.ButtonTemplate { Text = "Right Web Shooter", OnUpdate = () => GorillaMods.NewSpiderMonkey(false, true), OnDisable = () => GorillaMods.NewSpiderMonkey(false, false, true), Description = "Makes you able to shoot webs and swing with right hand only." },
+                            new Menu.ButtonTemplate { Text = "Upside-down World", OnUpdate = () => GorillaMods.UpsidedownWorld(), OnDisable = () => GorillaMods.UpsidedownWorld(true), Description = "Turns the world upside-down." },
+                            new Menu.ButtonTemplate { Text = "Left Controller Gun", OnUpdate = () => GorillaMods.ControllerGun(__instance.leftControllerTransform.gameObject), OnDisable = () => GorillaExtensions.GunTemplate(false, true), Description = "Makes your left hand go to the pointer." }
                         }
                     };
                     menu.Categorys.Add(Movement);
@@ -344,6 +351,9 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Spin Head (Y)", OnUpdate = () => GorillaMods.HeadSpin("y"), OnDisable = () => GorillaMods.HeadSpin("y", true), Description = "Spins head on Y axis." },
                             new Menu.ButtonTemplate { Text = "Spin Head (Z)", OnUpdate = () => GorillaMods.HeadSpin("z"), OnDisable = () => GorillaMods.HeadSpin("z", true), Description = "Spins head on Z axis." },
                             new Menu.ButtonTemplate { Text = "Crazy Head", OnEnable = () => GorillaMods.CrazyHead(), OnUpdate = () => GorillaMods.CrazyHead(), OnDisable = () => GorillaMods.CrazyHead(true), Description = "Sets your head to a random rotation." },
+                            new Menu.ButtonTemplate { Text = "Upside-down Head", OnUpdate = () => GorillaMods.UpsidedownHead(), OnDisable = () => GorillaMods.UpsidedownHead(true), Description = "Turns your head upside-down." },
+                            new Menu.ButtonTemplate { Text = "Backwards Head", OnUpdate = () => GorillaMods.BackwardsHead(), OnDisable = () => GorillaMods.BackwardsHead(true), Description = "Turns your head backwards." },
+                            new Menu.ButtonTemplate { Text = "Look At Closest", OnUpdate = () => GorillaMods.LookAtClosest(), Description = "Looks at the player closest to you." },
                             new Menu.ButtonTemplate { Text = "Go Crazy", OnUpdate = () => GorillaMods.GoCrazy(), OnDisable = () => GorillaMods.GoCrazy(true), Description = "Spins head and hands at the same time." },
                             new Menu.ButtonTemplate { Text = "Helicopter", OnUpdate = () => GorillaMods.Helicopter(), OnDisable = () => { GorillaTagger.Instance.offlineVRRig.enabled = true; }, Description = "If you hold grip you start spinning and flying upwards." },
                             new Menu.ButtonTemplate { Text = "Freeze [GRIP]", OnUpdate = () => GorillaMods.FreezeRig(), OnDisable = () => { GorillaTagger.Instance.offlineVRRig.enabled = true; }, Description = "Makes your rig freeze, but still follow your player position." },
@@ -364,6 +374,7 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Snipe Bug", OnUpdate = () => GorillaMods.SnipeBug(), Description = "Hold grip to get the bug." },
                             new Menu.ButtonTemplate { Text = "Snipe Bat", OnUpdate = () => GorillaMods.SnipeBat(), Description = "Hold grip to get the bat." },
                             new Menu.ButtonTemplate { Text = "Control Bug", OnUpdate = () => GorillaMods.ControlBug(), OnDisable = () => GorillaExtensions.GunTemplate(true), Description = "A gun-mod that makes you able to control the bug." },
+                            new Menu.ButtonTemplate { Text = "Control Bat", OnUpdate = () => GorillaMods.ControlBat(), OnDisable = () => GorillaExtensions.GunTemplate(true), Description = "A gun-mod that makes you able to control the bat." },
                             new Menu.ButtonTemplate { Text = "Allow Stealing Doug", OnUpdate = () => GorillaMods.AllowStealingDoug(), Description = "Makes other people able to grab doug out of others hands." },
                             new Menu.ButtonTemplate { Text = "Allow Stealing Bat", OnUpdate = () => GorillaMods.AllowStealingBat(), Description = "Makes other people able to grab bat out of others hands." },
                             new Menu.ButtonTemplate { Text = "Platform Gun", OnUpdate = () => GorillaMods.PlatformGun(), OnDisable = () => GorillaExtensions.GunTemplate(true), Description = "Spam spawning networked platforms." },
@@ -427,7 +438,7 @@ namespace Aspect.MenuLib
     {
         public static void CallUpdate(bool StateDepender, MenuTemplate Menu)
         {
-            if (!StateDepender && Menu.MenuRoot != null)
+            if (Menu.MenuRoot != null && !StateDepender || !Plugin.Plugin.Patched && Menu.MenuRoot != null)
             {
                 // Destroy menu reference
                 Menu.Reference.transform.parent = null;
@@ -440,17 +451,22 @@ namespace Aspect.MenuLib
                 {
                     if (!loadOnce)
                     {
+                        // Add rigidbody to menuroot
                         Rigidbody menuRB = Menu.MenuRoot.AddComponent<Rigidbody>();
+
+                        // Destroy colliders of menuroots children
                         foreach (Collider collider in Menu.MenuRoot.GetComponentsInChildren<Collider>())
                         {
                             GameObject.Destroy(collider);
                         }
-                        if (Menu.LeftHand)
+
+                        // Add velocity to rigidbody
+                        if (Menu.LeftHand) // lefthand
                         {
                             menuRB.velocity = Player.Instance.leftHandCenterVelocityTracker.GetAverageVelocity(true, 0);
                             menuRB.angularVelocity = GameObject.Find("TurnParent/LeftHand Controller").GetComponent<GorillaVelocityEstimator>().angularVelocity;
                         }
-                        else
+                        else // righthand
                         {
                             menuRB.velocity = Player.Instance.rightHandCenterVelocityTracker.GetAverageVelocity(true, 0);
                             menuRB.angularVelocity = GameObject.Find("TurnParent/RightHand Controller").GetComponent<GorillaVelocityEstimator>().angularVelocity;
@@ -470,7 +486,7 @@ namespace Aspect.MenuLib
                 return;
             }
 
-            if (Menu.MenuRoot == null && StateDepender)
+            if (Menu.MenuRoot == null && StateDepender && Plugin.Plugin.Patched)
             {
                 Draw(Menu);
 
@@ -511,15 +527,6 @@ namespace Aspect.MenuLib
         {
             foreach (ButtonTemplate btn in Menu.EnabledButtons)
             {
-                //if (!Menu.ExtraNameValues.ContainsKey(btn))
-                //{
-                //    Menu.ExtraNameValues.Add(btn, btn.ExtraValueText);
-                //}
-                // make sure extra name values is in sync
-                //else if (btn.ExtraValueText != Menu.ExtraNameValues[btn].ToString())
-                //{
-                //    btn.ExtraValueText = Menu.ExtraNameValues[btn].ToString();
-                //}
                 if (btn.ButtonState && btn.OnUpdate != null)
                 {
                     try
@@ -565,7 +572,7 @@ namespace Aspect.MenuLib
             GameObject textObj = new GameObject();
             textObj.transform.parent = Menu.Canvas.transform;
             Text text = textObj.AddComponent<Text>();
-            text.font = Update.menuTitleFont;
+            text.font = Menu.font;
             text.text = Menu.Title + " [" + Menu.currentPage.ToString() + "]";
             text.color = Menu.TitleColor;
             text.fontSize = 1;
@@ -714,7 +721,7 @@ namespace Aspect.MenuLib
             GameObject textObj = new GameObject();
             textObj.transform.parent = Menu.Canvas.transform;
             Text text = textObj.AddComponent<Text>();
-            text.font = Update.menuButtonFont;
+            text.font = Menu.font;
             text.text = Button.Text + ExtraValue + Extentions;
             text.fontSize = 1;
             text.alignment = TextAnchor.MiddleCenter;
@@ -754,7 +761,7 @@ namespace Aspect.MenuLib
                 GameObject textObj = new GameObject();
                 textObj.transform.parent = Menu.Canvas.transform;
                 Text text = textObj.AddComponent<Text>();
-                text.font = Update.menuButtonFont;
+                text.font = Menu.font;
                 text.text = ButtonText;
                 text.fontSize = 1;
                 text.alignment = TextAnchor.MiddleCenter;
@@ -942,6 +949,7 @@ namespace Aspect.MenuLib
             public bool LeftHand;
             public int TapFavButtonSound = 84;
             public float TapSoundStrength = 0.25f;
+            public Font font;
 
             // Menu core variables
             internal int currentPage = 0;
@@ -1104,6 +1112,7 @@ namespace Aspect.MenuLib
                 {
                     MenuLib.Update.AllGunsOnPC = false;
                     GorillaTagger.Instance.offlineVRRig.PlayHandTapLocal(67, false, 0.5f);
+
                     if (!button.Working)
                     {
                         NotifiLib.SendNotification("[<color=magenta>BUTTON</color> This button is not working, it'll be fixed soon");
@@ -1201,7 +1210,7 @@ namespace Aspect.MenuLib
                                 {
                                     button.ExtraValueText = menu.ExtraNameValues[button].ToString();
                                 }
-                                menu.EnabledButtons.Add(button);
+                                if (!menu.EnabledButtons.Contains(button)) menu.EnabledButtons.Add(button);
                             }
                             catch (Exception ex)
                             {
@@ -1238,6 +1247,12 @@ namespace Aspect.MenuLib
                         string text = $"[<color={color}>{button.Text}</color>] {button.Description}";
                         Board.SetBoardText($"Aspect Cheat Panel {Plugin.Plugin.modVersion}", Update.GetBoardText(Update.menu, $"\n\nCurrent Mod:\n{text}", true));
                         if (Update.tooltipNotification) NotifiLib.SendNotification(text);
+                    }
+
+                    // Make sure button is not in enabled buttons array
+                    if (button.ButtonState == false && menu.EnabledButtons.Contains(button))
+                    {
+                        menu.EnabledButtons.Remove(button);
                     }
 
                     Menu.RefreshMenu(menu);

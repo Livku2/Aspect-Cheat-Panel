@@ -9,8 +9,7 @@ using BepInEx;
 using ExitGames.Client.Photon;
 using System;
 using static Aspect.MenuLib.GorillaExtensions;
-using System.Runtime.Remoting.Messaging;
-using UnityEngine.Rendering;
+using UnityEngine.Animations.Rigging;
 
 namespace Aspect.MenuLib
 {
@@ -452,7 +451,7 @@ namespace Aspect.MenuLib
         {
             { "INFECTION", "You have joined an infection lobby, you can use the tag-gun freely in here." },
             { "HUNT", "You have joined a hunt lobby, you can use the tag-gun freely in here." },
-            { "BATTLE", "You have joined a battle lobby, you can only use the tag-gun when you are the masterclient." },
+            { "BATTLE", "You have joined a battle lobby, you can use the tag-gun freely in here." },
             { "CASUAL", "You have joined a casual lobby, you can't use the tag-gun in here." },
         };
         public static void TagGun(float cooldown = 0.3f)
@@ -461,12 +460,14 @@ namespace Aspect.MenuLib
             if (!PhotonNetwork.InRoom && sendGameModeNotificationTG) sendGameModeNotificationTG = false;
             if (PhotonNetwork.InRoom && !sendGameModeNotificationTG)
             {
-                NotifiLib.SendNotification($"[<color=red>SERVER</color>] {gameModeNotificationsTG[RigManager.CurrentGameMode()]}");
+                NotifiLib.SendNotification($"{gameModeNotificationsTG[RigManager.CurrentGameMode()]}");
                 sendGameModeNotificationTG = true;
             }
 
-            // make tag gun using GorillaExtensions.GunTemplate()
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            // make tag gun using GunTemplate()
+            RaycastHit hit = GunTemplate(Update.GunLock);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
+
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (RigManager.CurrentGameMode() == "HUNT" && !RigManager.IsHunted(hit.collider.GetComponentInParent<VRRig>()))
@@ -488,6 +489,16 @@ namespace Aspect.MenuLib
                     {
                         GorillaGameManager.instance.GetComponent<GorillaBattleManager>().HitPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
                     }
+                    else if (TagCooldownRPC < Time.time)
+                    {
+                        RigManager.VRRigToPhotonView(GorillaTagger.Instance.offlineVRRig).RPC("ReportSlingshotHit", RpcTarget.MasterClient, new object[]
+                        {
+                            RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner,
+                            hit.collider.GetComponentInParent<VRRig>().transform.position,
+                            (int)AccessTools.Method("ProjectileTracker:IncrementLocalPlayerProjectileCount").Invoke(null, null)
+                        });
+                        TagCooldownRPC += Time.time + cooldown;
+                    }
                     return;
                 }
                 else if (RigManager.CurrentGameMode() == "INFECTION" && !RigManager.IsTagged(hit.collider.GetComponentInParent<VRRig>()))
@@ -504,14 +515,13 @@ namespace Aspect.MenuLib
                     }
                     else
                     {
-                        if (PhotonNetwork.PlayerList.Length > 3)
+                        if (PhotonNetwork.PlayerList.Length > 3 && !GorillaTagger.Instance.offlineVRRig.CheckDistance(hit.collider.GetComponentInParent<VRRig>().transform.position, 6f) && !GorillaTagger.Instance.offlineVRRig.CheckTagDistanceRollback(hit.collider.GetComponentInParent<VRRig>(), 6f, 0.2f))
                         {
                             GorillaTagger.Instance.offlineVRRig.enabled = false;
                             GorillaTagger.Instance.offlineVRRig.transform.position = hit.point + new Vector3(0, 2, 0);
-                            GorillaLocomotion.Player.Instance.leftControllerTransform.gameObject.transform.position = hit.point;
-                            return;
                         }
-                        else if (TagCooldownRPC < Time.time)
+                        
+                        if (TagCooldownRPC < Time.time)
                         {
                             GameMode.ReportTag(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
                             TagCooldownRPC = Time.time + cooldown;
@@ -581,7 +591,7 @@ namespace Aspect.MenuLib
                     if (RPCCooldown < Time.time)
                     {
                         GameMode.ReportTag(GorillaTagger.Instance.offlineVRRig.huntComputer.GetComponent<GorillaHuntComputer>().myTarget);
-                        RPCCooldown = Time.time + 0.1f;
+                        RPCCooldown = Time.time + 0.08f;
                     }
                 }
             }
@@ -755,7 +765,7 @@ namespace Aspect.MenuLib
         // Freeze Gun
         public static void FreezeGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GunTemplate(Update.GunLock);
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION")
@@ -780,7 +790,8 @@ namespace Aspect.MenuLib
         // Vibrate Gun
         public static void VibrateGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GunTemplate(Update.GunLock);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (PhotonNetwork.IsMasterClient)
@@ -807,7 +818,8 @@ namespace Aspect.MenuLib
         static int currentMat = 0;
         public static void MaterialGun(float cooldown = 0.02f)
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(Update.GunLock);
+            RaycastHit hit = GunTemplate(Update.GunLock);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.collider.GetComponentInParent<VRRig>() != null)
             {
                 if (PhotonNetwork.IsMasterClient && RigManager.CurrentGameMode() == "INFECTION" && materialCooldown < Time.time)
@@ -1102,7 +1114,7 @@ namespace Aspect.MenuLib
                     }
                     else
                     {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.x = Update.defaultHeadRot.x;
+                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.x = Update.defaultHeadRotOffset.x;
                     }
                     break;
 
@@ -1113,7 +1125,7 @@ namespace Aspect.MenuLib
                     }
                     else
                     {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = Update.defaultHeadRot.y;
+                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = Update.defaultHeadRotOffset.y;
                     }
                     break;
 
@@ -1124,9 +1136,44 @@ namespace Aspect.MenuLib
                     }
                     else
                     {
-                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.z = Update.defaultHeadRot.z;
+                        GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.z = Update.defaultHeadRotOffset.z;
                     }
                     break;
+            }
+        }
+
+        // Upside-Down Head
+        public static void UpsidedownHead(bool reset = false)
+        {
+            if (!reset)
+            {
+                GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.z = 180;
+            }
+            else
+            {
+                GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.z = Update.defaultHeadRotOffset.z;
+            }
+        }
+
+        // Look Behind
+        public static void BackwardsHead(bool reset = false)
+        {
+            if (!reset)
+            {
+                GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = 180;
+            }
+            else
+            {
+                GorillaTagger.Instance.offlineVRRig.head.trackingRotationOffset.y = Update.defaultHeadRotOffset.y;
+            }
+        }
+
+        // Look At Closest
+        public static void LookAtClosest()
+        {
+            if (PhotonNetwork.InRoom)
+            {
+                GorillaTagger.Instance.offlineVRRig.headConstraint.LookAt(RigManager.GetClosest().transform);
             }
         }
 
@@ -1181,7 +1228,7 @@ namespace Aspect.MenuLib
             // OnDisable
             if (disable)
             {
-                rig.head.trackingRotationOffset = Update.defaultHeadRot;
+                rig.head.trackingRotationOffset = Update.defaultHeadRotOffset;
                 return;
             }
 
@@ -1203,7 +1250,7 @@ namespace Aspect.MenuLib
             }
             else
             {
-                GorillaTagger.Instance.enabled = true;
+                GorillaTagger.Instance.offlineVRRig.enabled = true;
             }
         }
 
@@ -1221,7 +1268,7 @@ namespace Aspect.MenuLib
             }
             else
             {
-                GorillaTagger.Instance.enabled = true;
+                GorillaTagger.Instance.offlineVRRig.enabled = true;
             }
         }
 
@@ -1261,12 +1308,6 @@ namespace Aspect.MenuLib
                     errorCooldown = Time.time + 1;
                 }
             }
-        }
-
-        // Projectile Spammer V2
-        public static void ProjectileSpammerV2()
-        {
-
         }
         #endregion
 
@@ -1389,6 +1430,21 @@ namespace Aspect.MenuLib
                     collider.enabled = true;
                 }
                 isNoclipping = false;
+            }
+        }
+
+        // Set Slide Control
+        static float slidecontrol = -1;
+        public static void SetSlideControl(float value, bool reset = false)
+        {
+            if (reset)
+            {
+                if (slidecontrol == -1) slidecontrol = GorillaLocomotion.Player.Instance.slideControl;
+                GorillaLocomotion.Player.Instance.slideControl = value;
+            }
+            else if (slidecontrol != -1)
+            {
+                GorillaLocomotion.Player.Instance.slideControl = slidecontrol;
             }
         }
 
@@ -1571,8 +1627,9 @@ namespace Aspect.MenuLib
         static bool IsTeleportCooldown = false;
         public static void TeleportGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
-            if (!IsTeleportCooldown && Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.point == new Vector3(0f, 0f, 0f))
+            RaycastHit hit = GunTemplate(false, false, false, false);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
+            if (!IsTeleportCooldown && Input.instance.CheckButton(Input.ButtonType.trigger, false) && hit.point != new Vector3(0f, 0f, 0f))
             {
                 GorillaPatches.TeleportPatch.Teleport(hit.point + GorillaLocomotion.Player.Instance.rightControllerTransform.up);
                 IsTeleportCooldown = true;
@@ -1767,10 +1824,12 @@ namespace Aspect.MenuLib
         {
             if (reset)
             {
+                if (rPointer) GameObject.Destroy(rPointer);
                 if (rObject) GameObject.Destroy(rObject);
                 if (lastRightPos) GameObject.Destroy(lastRightPos);
                 setRightPosOnce = false;
 
+                if (lPointer) GameObject.Destroy(lPointer);
                 if (lObject) GameObject.Destroy(lObject);
                 if (lastLeftPos) GameObject.Destroy(lastLeftPos);
                 setLeftPosOnce = false;
@@ -1789,6 +1848,7 @@ namespace Aspect.MenuLib
                 GameObject.Destroy(lPointer.GetComponent<SphereCollider>());
                 GameObject.Destroy(lPointer.GetComponent<Rigidbody>());
                 lPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                lPointer.GetComponent<Renderer>().material.SetColor("_Color", Color.white);
             }
 
             if (rPointer == null)
@@ -1797,6 +1857,7 @@ namespace Aspect.MenuLib
                 GameObject.Destroy(rPointer.GetComponent<SphereCollider>());
                 GameObject.Destroy(rPointer.GetComponent<Rigidbody>());
                 rPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                rPointer.GetComponent<Renderer>().material.SetColor("_Color", Color.white);
             }
 
             lPointer.transform.position = lHit.point;
@@ -1808,8 +1869,13 @@ namespace Aspect.MenuLib
 
                 lString = lObject.AddComponent<LineRenderer>();
 
+                lString.material.shader = RigManager.uberShader;
+
                 lString.startWidth = 0.04f;
                 lString.endWidth = 0.04f;
+
+                lString.startColor = Color.white;
+                lString.endColor = Color.white;
             }
 
             if (rObject == null)
@@ -1818,8 +1884,13 @@ namespace Aspect.MenuLib
 
                 rString = rObject.AddComponent<LineRenderer>();
 
+                rString.material.shader = RigManager.uberShader;
+
                 rString.startWidth = 0.04f;
                 rString.endWidth = 0.04f;
+
+                rString.startColor = Color.white;
+                rString.endColor = Color.white;
             }
 
             if (Input.instance.CheckButton(Input.ButtonType.grip, false))
@@ -1830,6 +1901,7 @@ namespace Aspect.MenuLib
                     lastRightPos = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                     GameObject.Destroy(lastRightPos.GetComponent<Rigidbody>());
                     GameObject.Destroy(lastRightPos.GetComponent<SphereCollider>());
+                    lastRightPos.GetComponent<Renderer>().material.SetColor("_Color", Color.white);
                     lastRightPos.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
                     lastRightPos.transform.position = rHit.point;
                     setRightPosOnce = true;
@@ -1858,6 +1930,7 @@ namespace Aspect.MenuLib
                     GameObject.Destroy(lastLeftPos.GetComponent<Rigidbody>());
                     GameObject.Destroy(lastLeftPos.GetComponent<SphereCollider>());
                     lastLeftPos.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    lastLeftPos.GetComponent<Renderer>().material.SetColor("_Color", Color.white);
                     lastLeftPos.transform.position = lHit.point;
                     setLeftPosOnce = true;
                 }
@@ -1986,6 +2059,32 @@ namespace Aspect.MenuLib
                 }
             }
         }
+
+        // Upside Down World
+        public static void UpsidedownWorld(bool reset = false)
+        {
+            if (!reset)
+            {
+                GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.rotation = new Quaternion(0f, -180f, 0f, 1f);
+                ChangeGravity(false, -3);
+            }
+            else
+            {
+                GorillaLocomotion.Player.Instance.bodyCollider.attachedRigidbody.rotation = new Quaternion(0f, 0f, 0f, 1f);
+                ChangeGravity(true);
+            }
+        }
+
+        // Controller Gun
+        public static void ControllerGun(GameObject controllerobj)
+        {
+            RaycastHit hit = GunTemplate(false, false, false, false);
+            UpdateColor(hit, false);
+            if (Input.instance.CheckButton(Input.ButtonType.trigger, false))
+            {
+                controllerobj.transform.position = hit.point;
+            }
+        }
         #endregion
 
         #region FUN & RANDOM
@@ -2023,7 +2122,8 @@ namespace Aspect.MenuLib
         static float platformSpawnDelay = 0f;
         public static void PlatformGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
+            RaycastHit hit = GunTemplate(false, false, false, false);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false) && platformSpawnDelay < Time.time)
             {
                 // create platform
@@ -2040,7 +2140,8 @@ namespace Aspect.MenuLib
         // Click Buttons Gun
         public static void ClickButtonsGun()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
+            RaycastHit hit = GunTemplate(false, false, false, false);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
             if (Input.instance.CheckButton(Input.ButtonType.trigger))
             {
                 GorillaTagger.Instance.leftHandTriggerCollider.transform.position = hit.point;
@@ -2050,10 +2151,22 @@ namespace Aspect.MenuLib
         // Control Bug
         public static void ControlBug()
         {
-            RaycastHit hit = GorillaExtensions.GunTemplate(false, false, false, false);
+            RaycastHit hit = GunTemplate(false, false, false, false);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
             if (Input.instance.CheckButton(Input.ButtonType.trigger, false))
             {
                 GameObject.Find("Floating Bug Holdable").transform.position = hit.point;
+            }
+        }
+
+        // Control Bat
+        public static void ControlBat()
+        {
+            RaycastHit hit = GunTemplate(false, false, false, false);
+            UpdateColor(hit, Input.instance.CheckButton(Input.ButtonType.trigger, false));
+            if (Input.instance.CheckButton(Input.ButtonType.trigger, false))
+            {
+                GameObject.Find("Cave Bat Holdable").transform.position = hit.point;
             }
         }
 
@@ -2121,9 +2234,12 @@ namespace Aspect.MenuLib
         static GameObject gunLine;
         static LineRenderer lineRenderer;
         static VRRig lastRig = null;
+        static bool vibrate = false;
 
         public static RaycastHit GunTemplate(bool gunlock, bool destroyPointer = false, bool controlledFromPC = false, bool vibrateOnTarget = true)
         {
+            vibrate = vibrateOnTarget;
+
             if (destroyPointer)
             {
                 UnityEngine.Object.Destroy(gunPointer);
@@ -2182,36 +2298,29 @@ namespace Aspect.MenuLib
                     }
                 }
 
-                if (gunPointer == null)
+                try
                 {
-                    // Create pointer
-                    gunPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    UnityEngine.Object.Destroy(gunPointer.GetComponent<Collider>());
-                    UnityEngine.Object.Destroy(gunPointer.GetComponent<Rigidbody>());
-                    gunPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-                    Menu.ColorChanger colorChanger = gunPointer.AddComponent<Menu.ColorChanger>();
-                    colorChanger.shader = RigManager.textShader;
+                    if (gunPointer == null)
+                    {
+                        // Create pointer
+                        gunPointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        UnityEngine.Object.Destroy(gunPointer.GetComponent<Collider>());
+                        UnityEngine.Object.Destroy(gunPointer.GetComponent<Rigidbody>());
+                        gunPointer.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
 
-                    // Create line
-                    gunLine = new GameObject("Line");
-                    lineRenderer = gunLine.AddComponent<LineRenderer>();
-                    lineRenderer.material.shader = RigManager.textShader;
-                    lineRenderer.startWidth = 0.02f;
-                    lineRenderer.endWidth = 0.02f;
-                    lineRenderer.startColor = colorChanger.Color1;
-                    lineRenderer.endColor = colorChanger.Color1;
+                        // Create line
+                        gunLine = new GameObject("Line");
+                        lineRenderer = gunLine.AddComponent<LineRenderer>();
+                        lineRenderer.material.shader = RigManager.textShader;
+                        lineRenderer.startWidth = 0.02f;
+                        lineRenderer.endWidth = 0.02f;
+                    }
+
+                    // Update line
                     lineRenderer.SetPosition(0, GorillaTagger.Instance.rightHandTransform.position);
-                    lineRenderer.SetPosition(1, hit.point);
-
-                    gunPointer.transform.position = hit.point;
-                    return hit;
+                    lineRenderer.SetPosition(1, gunPointer.transform.position);
                 }
-
-                // Update line
-                lineRenderer.startColor = Color.black;
-                lineRenderer.endColor = gunPointer.GetComponent<Renderer>().material.color;
-                lineRenderer.SetPosition(0, GorillaTagger.Instance.rightHandTransform.position);
-                lineRenderer.SetPosition(1, gunPointer.transform.position);
+                catch { }
 
                 // action when pointer is on another rig
                 if (hit.collider.GetComponentInParent<VRRig>() != null && !Update.AllGunsOnPC)
@@ -2245,6 +2354,55 @@ namespace Aspect.MenuLib
             Physics.Raycast(new Vector3(0, 0, 0), new Vector3(0, -1, 0), out hit);
 
             return hit;
+        }
+
+        public static void UpdateColor(RaycastHit hit, bool stateDepender)
+        {
+            if (Input.instance.CheckButton(Input.ButtonType.grip, false))
+            {
+                if (hit.collider.GetComponentInParent<VRRig>() != null && !Update.AllGunsOnPC && vibrate)
+                {
+                    if (stateDepender)
+                    {
+                        // Set gunPointer texture to text-shader
+                        if (gunPointer.GetComponent<Renderer>().material.shader != RigManager.textShader)
+                            gunPointer.GetComponent<Renderer>().material.shader = RigManager.textShader;
+
+                        // Set gunPointer color
+                        gunPointer.GetComponent<Renderer>().material.color = Color.red;
+
+                        // Set line color
+                        lineRenderer.startColor = Color.black;
+                        lineRenderer.endColor = gunPointer.GetComponent<Renderer>().material.color;
+                    }
+                    else
+                    {
+                        // Set gunPointer texture to text-shader
+                        if (gunPointer.GetComponent<Renderer>().material.shader != RigManager.textShader)
+                            gunPointer.GetComponent<Renderer>().material.shader = RigManager.textShader;
+
+                        // Set gunPointer color
+                        gunPointer.GetComponent<Renderer>().material.color = Color.yellow;
+
+                        // Set line color
+                        lineRenderer.startColor = Color.black;
+                        lineRenderer.endColor = gunPointer.GetComponent<Renderer>().material.color;
+                    }
+                }
+                else
+                {
+                    // Set gunPointer texture to text-shader
+                    if (gunPointer.GetComponent<Renderer>().material.shader != RigManager.textShader)
+                        gunPointer.GetComponent<Renderer>().material.shader = RigManager.textShader;
+
+                    // Set gunPointer color
+                    gunPointer.GetComponent<Renderer>().material.color = Color.white;
+
+                    // Set line color
+                    lineRenderer.startColor = Color.black;
+                    lineRenderer.endColor = gunPointer.GetComponent<Renderer>().material.color;
+                }
+            }
         }
 
         // Can be added to gameobjects to make them teleport you when colliding
@@ -2294,17 +2452,6 @@ namespace Aspect.MenuLib
                     Update.reportCount++;
                     NotifiLib.SendNotification($"Your report count is at {Update.reportCount} now", true);
                 }
-            }
-        }
-
-        // Add this to a gameobject to make a specific Action invoke when it's destroyed
-        public class InvokeOnDestroy : MonoBehaviour
-        {
-            public Action action;
-
-            public void OnDestroy()
-            {
-                action.Invoke();
             }
         }
 
@@ -2362,6 +2509,25 @@ namespace Aspect.MenuLib
     /// </summary>
     class GorillaPatches
     {
+        // Slide Patches
+        public static bool forceNoSlide = false;
+        public static bool forceSlide = false;
+        [HarmonyPatch(typeof(GorillaLocomotion.Player), "GetSlidePercentage")]
+        internal class SlidePatch
+        {
+            private static void Postfix(GorillaLocomotion.Player __instance, ref float __result)
+            {
+                if (!forceNoSlide && forceSlide)
+                {
+                    __result = 1;
+                }
+                if (forceNoSlide && !forceSlide)
+                {
+                    __result = 0;
+                }
+            }
+        }
+
 
         [HarmonyPatch(typeof(GorillaLocomotion.Player), "AntiTeleportTechnology")]
         internal class AntiTeleportPatch
@@ -2485,13 +2651,13 @@ namespace Aspect.MenuLib
             }
         }
 
-        // Patches SetColor because it fucks up custom gameobject-colors (i think ... don't judge, i made this script 7 months ago)
+        // When setting a gameobjects color (SetColor) it changes the shader to a valid one
         [HarmonyPatch(typeof(Material), "SetColor", new[] { typeof(string), typeof(Color) })]
-        internal class GameObjectRenderFixer
+        internal class GameObjectRenderFixer_color
         {
             private static void Prefix(Material __instance, string name, Color value)
             {
-                if (name == "_Color")
+                if (name == "_Color"/* && __instance.shader != RigManager.uberShader*/)
                 {
                     __instance.shader = RigManager.uberShader;
                     __instance.color = value;

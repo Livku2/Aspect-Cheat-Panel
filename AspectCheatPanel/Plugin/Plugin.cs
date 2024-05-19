@@ -11,6 +11,7 @@ using UnityEngine.InputSystem;
 using System.Linq;
 using Aspect.Utilities;
 using System;
+using UnityEngine.UI;
 
 namespace Aspect.Plugin
 {
@@ -24,23 +25,23 @@ namespace Aspect.Plugin
     {
         // Plugin data
         private const string modGUID = "aspect.cheat.panel";
-        public const string modVersion = "6.2.5";
+        public const string modVersion = "6.2.6";
         private const string modName = "Aspect Cheat Panel";
 
         private static Harmony harmony;
-        public static bool Patched { get; private set; } = false;
+        public static bool Patched = false;
 
         // Load harmony
         private void OnEnable()
         {
             if (!Patched)
             {
+                Patched = true;
                 if (harmony == null)
                 {
                     harmony = new Harmony(modGUID);
                 }
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
-                Patched = true;
             }
         }
 
@@ -49,18 +50,24 @@ namespace Aspect.Plugin
         {
             if (harmony != null && Patched)
             {
-                harmony.UnpatchSelf();
                 Patched = false;
+                harmony.UnpatchSelf();
             }
         }
 
-        // This is totally not hooking the menu update :sob:
+        // this is totally not hooking the update function...
         private void LateUpdate()
         {
-            if (Patched && GorillaLocomotion.Player.Instance)
+            if (GorillaLocomotion.Player.Instance != null && Patched)
             {
-                MenuLib.Update.Run_OnUpdate(GorillaLocomotion.Player.Instance);
+                MenuLib.Update.update();
             }
+        }
+
+        // Runs one time whem gtag closes
+        public static void OnQuit()
+        {
+            Menu.CallUpdate(false, MenuLib.Update.menu);
         }
 
         // These are the gui variables, should not be touched, except for special equations 
@@ -74,7 +81,7 @@ namespace Aspect.Plugin
         private int GUICooldown;
         private bool IsOpen = false;
         private string Name = "name to change to";
-        private string[] Categorys = { "Info", "Room", "Settings", "Buttons" };
+        private string[] Categorys = { "Info", "Room", "Buttons" };
         private int CurrentCategory = 0;
         private float R = 1f;
         private float G = 1f;
@@ -101,9 +108,14 @@ namespace Aspect.Plugin
                     GUI.skin.button.fontStyle = FontStyle.Italic;
                     GUI.skin.toggle.fontStyle = FontStyle.Italic;
 
+                    // Set colors
+                    GUI.backgroundColor = GameObject.Find("wallmonitorforest").GetComponent<Renderer>().material.color + Color.black;
+
                     // Create a draggable window
                     windowRect = GUI.Window(0, windowRect, WindowFunction, $"Aspect Cheat Panel {modVersion} | {(int)(1f / Time.deltaTime)}");
                 }
+
+                if (!MenuLib.Update.ShowEnabledButtons) return;
 
                 GUIStyle style = new GUIStyle(GUI.skin.label); // Create a new GUIStyle, copying the default label style
                 style.normal.textColor = Color.magenta; // Set the text color to magenta
@@ -112,12 +124,9 @@ namespace Aspect.Plugin
                 // Starting position for the first label
                 float startY = 7.5f;
 
-                // Loop through each string in the list and create a label for it
-                foreach (Menu.ButtonTemplate button in MenuLib.Update.menu.Buttons)
+                // Loop through each enabled button and create a label for it
+                foreach (Menu.ButtonTemplate button in MenuLib.Update.menu.EnabledButtons)
                 {
-                    // Continue the next button if the buttons isnt turned on
-                    if (!button.ButtonState) continue;
-
                     Rect labelRect = new Rect(10, startY, 1000, 35); // Define the position and size of the label
                     GUI.Label(labelRect, button.Text, style); // Create the label with the current string
 
@@ -129,6 +138,9 @@ namespace Aspect.Plugin
 
         void WindowFunction(int _)
         {
+            // Change bg color back to white
+            GUI.backgroundColor = Color.white;
+
             // Add Categorys
             GUILayout.Space(10f);
             GUILayout.BeginHorizontal();
@@ -175,18 +187,8 @@ namespace Aspect.Plugin
                     GUILayout.EndScrollView(); // End scrollview
                     break;
 
-                // SETTINGS
-                case 2:
-                    scrollPosition = GUILayout.BeginScrollView(scrollPosition); // Begin the scroll view
-
-                    GUILayout.Label("coming soon");
-
-                    // End the scroll view
-                    GUILayout.EndScrollView();
-                    break;
-
                 // BUTTONS
-                case 3:
+                case 2:
                     scrollPosition = GUILayout.BeginScrollView(scrollPosition); // Begin the scroll view
 
                     GUI.backgroundColor = Color.red; // Set gui color
@@ -202,7 +204,7 @@ namespace Aspect.Plugin
                     {
                         Menu.ButtonTemplate button = Buttons[i]; // Get button
 
-                        GUI.backgroundColor = button.IsFavorited ? Color.yellow : button.ButtonState ? Color.green : Color.red; // Handle button colors
+                        GUI.backgroundColor = button.ButtonState ? Color.green : Color.red; // Handle button colors
 
                         if (GUILayout.Button(button.Text)) // Create GUI button
                         {
@@ -309,6 +311,9 @@ namespace Aspect.Plugin
                 // Update the window position while dragging
                 windowRect.position = Event.current.mousePosition - dragOffset;
             }
+
+            // Run OnQuit when quitting app
+            Application.quitting += OnQuit;
         }
 
         // Utilla stuff is commented out rn because the menu has no need for them

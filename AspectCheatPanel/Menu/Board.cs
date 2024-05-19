@@ -36,8 +36,7 @@ namespace Aspect.MenuLib
                 "wallmonitorcosmetics",
                 "wallmonitorcave",
                 "wallmonitorforest",
-                "wallmonitorskyjungle",
-                "forestatlas (combined by EdMeshCombinerSceneProcessor)"
+                "wallmonitorskyjungle"
             };
 
             // color the board given
