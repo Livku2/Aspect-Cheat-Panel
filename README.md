@@ -4,7 +4,11 @@ This is a undetected Gorilla Tag mod menu, with lots of mods updating frequently
 Its completely free and opensource.
 
 ## How to use it?
-Use Monke Mod Manager by Deadly Kitten (https://github.com/DeadlyKitten/MonkeModManager) to download the BepInEx core for Gorilla Tag and Utilla a official Gorilla Tag mod library. After you downloaded those 2 things you now just have to drag the .DLL file (found in releases) into the "Gorilla Tag\BepInEx\plugins" folder. When you are ingame follow the instructions found on the board to the right AKA the Code Of Conduct board.
+- Download Gorilla-Tag-mod-fixer (https://github.com/AspectGTAG/Gorilla-Tag-mod-fixer/releases/latest).
+- Open the mod fixer and go trhough the installation.
+- When downloading you get the option to download Aspect Cheat Panel.
+- If you want to download it manually you can get it from releases in this repository.
+- You can read furthur instuctions on the board ingame.
 
 # DO NOT USE ANY IF THIS CODE FOR PUBLIC PROJECTS WITHOUT MY PERMISSION
 
