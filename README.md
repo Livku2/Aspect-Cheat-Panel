@@ -10,6 +10,6 @@ Its completely free and opensource.
 - If you want to download it manually you can get it from releases in this repository.
 - You can read furthur instuctions on the board ingame.
 
-# DO NOT USE ANY IF THIS CODE FOR PUBLIC PROJECTS WITHOUT MY PERMISSION
+# DO NOT USE ANY IF THIS CODE FOR PUBLIC PROJECTS WITHOUT MY PERMISSION. PLEASE READ LICENSE.txt FOR FUTHER INFORMATION.
 
 This product is not affiliated with Gorilla Tag or Another Axiom LLC and is not endorsed or otherwise sponsored by Another Axiom LLC. Portions of the materials contained herein are property of Another Axiom LLC. © 2021 Another Axiom LLC.
