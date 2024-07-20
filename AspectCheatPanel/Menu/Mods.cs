@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Photon.Pun;
 using UnityEngine;
 using Aspect.Utilities;
@@ -1617,6 +1617,16 @@ namespace Aspect.MenuLib
             }
         }
 
+        public static void WallWalkDistance(float maxDistance = 2f)
+        {
+            GorillaPatches.WallWalk = true;
+            GorillaPatches.MaxDistance = maxDistance;
+            if (!ControllerInputPoller.instance.leftGrab && !ControllerInputPoller.instance.rightGrab)
+            {
+                Physics.gravity = new Vector3(0f, -9.81f, 0f);
+            }
+        }
+
         // Disable Quitbox - being turned on after being turned off doesnt work
         public static void DisableQuitbox(bool disable)
         {
@@ -2512,6 +2522,9 @@ namespace Aspect.MenuLib
         // Slide Patches
         public static bool forceNoSlide = false;
         public static bool forceSlide = false;
+        public static bool WallWalk = false;
+        public static bool wallStick = false;
+        public static float MaxDistance = 2f;
         [HarmonyPatch(typeof(GorillaLocomotion.Player), "GetSlidePercentage")]
         internal class SlidePatch
         {
@@ -2528,6 +2541,41 @@ namespace Aspect.MenuLib
             }
         }
 
+        [HarmonyPatch(typeof(GorillaLocomotion.Player), "GetSlidePercentage")]
+        public class WallStickPatch
+        {
+            // Token: 0x06000060 RID: 96 RVA: 0x00005A20 File Offset: 0x00003C20
+            private static void Postfix(RaycastHit raycastHit)
+            {
+                if (wallStick)
+                {
+                    if (ControllerInputPoller.instance.rightGrab)
+                    {
+                        GorillaLocomotion.Player.Instance.GetComponent<Rigidbody>().AddForce(raycastHit.normal * -40f, ForceMode.Impulse);
+                    }
+                    if (ControllerInputPoller.instance.leftGrab)
+                    {
+                        GorillaLocomotion.Player.Instance.GetComponent<Rigidbody>().AddForce(raycastHit.normal * -40f, ForceMode.Impulse);
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(GorillaLocomotion.Player), "GetSlidePercentage")]
+        public class WallWalkPatch
+        {
+            // Token: 0x0600005E RID: 94 RVA: 0x00005970 File Offset: 0x00003B70
+            private static void Postfix(RaycastHit raycastHit)
+            {
+                if (WallWalk)
+                {
+                    if ((ControllerInputPoller.instance.rightGrab || ControllerInputPoller.instance.leftGrab) && raycastHit.distance <= MaxDistance)
+                    {
+                        Physics.gravity = raycastHit.normal * -9.81f;
+                    }
+                }
+            }
+        }
 
         [HarmonyPatch(typeof(GorillaLocomotion.Player), "AntiTeleportTechnology")]
         internal class AntiTeleportPatch
