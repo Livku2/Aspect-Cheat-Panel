@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
@@ -296,6 +296,10 @@ namespace Aspect.MenuLib
                             new Menu.ButtonTemplate { Text = "Ride Projectile", OnUpdate = () => GorillaMods.ProjectileTeleport(true), Description = "Throw/shoot a projectile to ride it." },
                             new Menu.ButtonTemplate { Text = "Strong Wall Walk [GRIP]", OnUpdate = () => GorillaMods.WallWalk(10, Input.instance.CheckButton(Input.ButtonType.grip, false)), Description = "Pulls you towards whatever you're touching fast." },
                             new Menu.ButtonTemplate { Text = "Legit Wall Walk [GRIP]", OnUpdate = () => GorillaMods.WallWalk(2, Input.instance.CheckButton(Input.ButtonType.grip, false)), Description = "Pulls you towards whatever you're touching slowly." },
+                            new Menu.ButtonTemplate { Text = "Legit Grav Wall Walk [GRIP]", OnUpdate = () => { GorillaMods.WallWalkDistance(2f); }, Description = "Uses gravity to pull you towards the last touched wall if it is within a certain distance" },
+                            new Menu.ButtonTemplate { Text = "Blatant Grav Wall Walk [GRIP]", OnUpdate = () => { GorillaMods.WallWalkDistance(5f); }, Description = "Uses gravity to pull you towards the last touched wall if it is within a certain distance" },
+                            new Menu.ButtonTemplate { Text = "Fun Grav Wall Walk [GRIP]", OnUpdate = () => { GorillaMods.WallWalkDistance(10f); }, Description = "Uses gravity to pull you towards the last touched wall if it is within a certain distance" },
+                            new Menu.ButtonTemplate { Text = "Wall Stick [GRIP]", OnEnable = () => { GorillaPatches.wallStick = true; }, OnDisable = () => { GorillaPatches.wallStick = false; }, Description = "Lets you grab on to anything" },
                             new Menu.ButtonTemplate { Text = "Longarms", OnUpdate = () => GorillaMods.LongArms(Vector3.forward / 8, Vector3.forward / 8), OnDisable = () => GorillaMods.LongArms(Vector3.zero, Vector3.zero, true), Description = "Gives you longarms, like your controllers are on sticks." },
                             new Menu.ButtonTemplate { Text = "Legit Longarms", OnUpdate = () => GorillaMods.LongArms(Vector3.forward / 40, Vector3.forward / 40), OnDisable = () => GorillaMods.LongArms(Vector3.zero, Vector3.zero, true), Description = "Gives you unnoticeable longarms, like your controllers are on sticks." },
                             new Menu.ButtonTemplate { Text = "C4", OnUpdate = () => GorillaMods.C4(), OnDisable = () => GorillaMods.C4(0, true), Description = "Left grip to plant, and right grip to detonate." },
@@ -1245,7 +1249,7 @@ namespace Aspect.MenuLib
                         string color = button.ButtonState ? "green" : "red";
                         if (!button.Toggle) color = "green";
                         string text = $"[<color={color}>{button.Text}</color>] {button.Description}";
-                        Board.SetBoardText($"Aspect Cheat Panel {Plugin.Plugin.modVersion}", Update.GetBoardText(Update.menu, $"\n\nCurrent Mod:\n{text}", true));
+                        Board.SetBoardText($"Aspect Cheat Panel {Plugin.Plugin.modVersion} Fixed", Update.GetBoardText(Update.menu, $"\n\nCurrent Mod:\n{text}", true));
                         if (Update.tooltipNotification) NotifiLib.SendNotification(text);
                     }
 
