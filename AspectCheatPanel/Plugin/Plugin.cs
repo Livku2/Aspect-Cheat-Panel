@@ -1,4 +1,4 @@
-﻿using Aspect.MenuLib;
+using Aspect.MenuLib;
 using BepInEx;
 using GorillaNetworking;
 using HarmonyLib;
@@ -25,7 +25,7 @@ namespace Aspect.Plugin
     {
         // Plugin data
         private const string modGUID = "aspect.cheat.panel";
-        public const string modVersion = "6.2.6";
+        public const string modVersion = "7.0.0";
         private const string modName = "Aspect Cheat Panel";
 
         private static Harmony harmony;
@@ -79,7 +79,7 @@ namespace Aspect.Plugin
         private float MovementSpeedWASD = 5f;
         private bool DoKeyboardMovement = false;
         private int GUICooldown;
-        private bool IsOpen = false;
+        private bool IsOpen = true;
         private string Name = "name to change to";
         private string[] Categorys = { "Info", "Room", "Buttons" };
         private int CurrentCategory = 0;
@@ -93,13 +93,6 @@ namespace Aspect.Plugin
         {
             if (Patched)
             {
-                // Get input to open GUI
-                if (Keyboard.current.insertKey.isPressed && GUICooldown + 30 < Time.frameCount)
-                {
-                    IsOpen = !IsOpen;
-                    GUICooldown = Time.frameCount;
-                }
-
                 if (IsOpen) // Check if gui is open
                 {
                     // Set fontstyles
@@ -108,7 +101,7 @@ namespace Aspect.Plugin
                     GUI.skin.button.fontStyle = FontStyle.Italic;
                     GUI.skin.toggle.fontStyle = FontStyle.Italic;
 
-                    // Set colors
+                     // Set colors
                     GUI.backgroundColor = GameObject.Find("wallmonitorforest").GetComponent<Renderer>().material.color + Color.black;
 
                     // Create a draggable window
@@ -167,12 +160,12 @@ namespace Aspect.Plugin
 
                     GUI.backgroundColor = Color.red; // Set gui color
 
-                    if (GUILayout.Button("Quit")) Environment.FailFast("Exited GTAG"); // Disconnect button
+                    if (GUILayout.Button("Quit")) Environment.FailFast("Exited GTAG"); // Quit button
 
                     if (GUILayout.Button("Disconnect")) PhotonNetwork.Disconnect(); // Disconnect button
 
                     LobbyToJoin = GUILayout.TextField(LobbyToJoin.ToUpper()); // Join specific lobby
-                    if (GUILayout.Button("Join Lobby")) PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(LobbyToJoin);
+                    if (GUILayout.Button("Join Lobby")) PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(LobbyToJoin, JoinType.Solo);
 
                     Name = GUILayout.TextField(Name.ToUpper()); // Change name
                     if (GUILayout.Button("Change Name")) Util.ChangeName(Name);
