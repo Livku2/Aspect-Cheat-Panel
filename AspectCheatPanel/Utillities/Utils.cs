@@ -219,7 +219,7 @@ namespace Aspect.Utilities
         {
             if (GorillaGameManager.instance.GetComponent<GorillaTagManager>()) return "INFECTION";
             else if (GorillaGameManager.instance.GetComponent<GorillaHuntManager>()) return "HUNT";
-            else if (GorillaGameManager.instance.GetComponent<GorillaBattleManager>()) return "BATTLE";
+            else if (GorillaGameManager.instance.GetComponent<GorillaPaintbrawlManager>()) return "BATTLE";
             else return "CASUAL";
         }
 
