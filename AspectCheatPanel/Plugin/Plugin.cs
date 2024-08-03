@@ -24,7 +24,7 @@ namespace Aspect.Plugin
     public class Plugin : BaseUnityPlugin
     {
         // Plugin data
-        private const string modGUID = "aspect.cheat.panel";
+        public const string modGUID = "aspect.cheat.panel";
         public const string modVersion = "7.0.0";
         private const string modName = "Aspect Cheat Panel";
 
@@ -87,6 +87,21 @@ namespace Aspect.Plugin
         private float G = 1f;
         private float B = 1f;
         private bool clickStuffWithMouse = false;
+        bool doOnce;
+
+        //Use this to define a texture
+        private Texture2D MakeTex(int width, int height, Color col)
+        {
+            Color[] pix = new Color[width * height];
+            for (int i = 0; i < pix.Length; ++i)
+            {
+                pix[i] = col;
+            }
+            Texture2D result = new Texture2D(width, height);
+            result.SetPixels(pix);
+            result.Apply();
+            return result;
+        }
 
         // Handles and runs GUI
         private void OnGUI()
@@ -95,14 +110,14 @@ namespace Aspect.Plugin
             {
                 if (IsOpen) // Check if gui is open
                 {
-                    // Set fontstyles
                     GUI.skin.window.fontStyle = FontStyle.BoldAndItalic;
                     GUI.skin.label.fontStyle = FontStyle.Italic;
                     GUI.skin.button.fontStyle = FontStyle.Italic;
                     GUI.skin.toggle.fontStyle = FontStyle.Italic;
+                    GUI.skin.button.normal.textColor = Color.white;
 
-                     // Set colors
-                    GUI.backgroundColor = GameObject.Find("wallmonitorforest").GetComponent<Renderer>().material.color + Color.black;
+                    // Set colors
+                    GUI.backgroundColor = Color.magenta;
 
                     // Create a draggable window
                     windowRect = GUI.Window(0, windowRect, WindowFunction, $"Aspect Cheat Panel {modVersion} | {(int)(1f / Time.deltaTime)}");
