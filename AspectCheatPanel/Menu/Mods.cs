@@ -487,7 +487,7 @@ namespace Aspect.MenuLib
                 {
                     if (PhotonNetwork.IsMasterClient)
                     {
-                        GorillaGameManager.instance.GetComponent<GorillaBattleManager>().HitPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
+                        GorillaGameManager.instance.GetComponent<GorillaPaintbrawlManager>().HitPlayer(RigManager.VRRigToPhotonView(hit.collider.GetComponentInParent<VRRig>()).Owner);
                     }
                     else if (TagCooldownRPC < Time.time)
                     {
