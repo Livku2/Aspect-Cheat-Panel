@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-﻿using Aspect.MenuLib;
-=======
 using Aspect.MenuLib;
->>>>>>> origin/master
 using BepInEx;
 using GorillaNetworking;
 using HarmonyLib;

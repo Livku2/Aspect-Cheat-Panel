@@ -38,11 +38,8 @@ namespace Aspect.MenuLib
         {
             //this is mostly copy pasted from LHAX, which was also made by me.
             //LHAX got leaked the day before this. so i might as well make this public cus people asked me to.
-<<<<<<< HEAD
             MainCamera = GameObject.Find("Player Objects/Player VR Controller/GorillaPlayer/TurnParent/Main Camera/");
-=======
             MainCamera = GameObject.Find("Main Camera");
->>>>>>> origin/master
             HUDObj = new GameObject();//GameObject.CreatePrimitive(PrimitiveType.Cube);
             HUDObj2 = new GameObject();
             HUDObj2.name = "NOTIFICATIONLIB_HUD_OBJ";
@@ -68,10 +65,7 @@ namespace Aspect.MenuLib
             Testtext = TestText.AddComponent<Text>();
             Testtext.text = "";
             Testtext.fontSize = 10;
-<<<<<<< HEAD
-=======
             Testtext.font = GameObject.Find("COC Text").GetComponent<Text>().font;
->>>>>>> origin/master
             Testtext.rectTransform.sizeDelta = new Vector2(260, 70);
             Testtext.alignment = TextAnchor.LowerLeft;
             Testtext.rectTransform.localScale = new Vector3(0.01f, 0.01f, 1f);

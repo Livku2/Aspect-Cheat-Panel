@@ -13,11 +13,8 @@ namespace Aspect.MenuLib
         public static void SetBoardText(string title, string content)
         {
             // dont set text if the board doesn't exist
-<<<<<<< HEAD
             /*if (GameObject.Find("COC Text") == null) return;
-=======
             if (GameObject.Find("COC Text") == null) return;
->>>>>>> origin/master
 
             //set text
             GameObject boardTitle = GameObject.Find("CodeOfConduct");
@@ -29,20 +26,14 @@ namespace Aspect.MenuLib
             RectTransform component = board.GetComponent<RectTransform>();
             component.sizeDelta = new Vector2(68.8744f, 177.5f);
             component.localPosition = new Vector3(-56.2008f, -63f, 0.0002f);
-<<<<<<< HEAD
             */
-=======
->>>>>>> origin/master
         }
 
         static string[] screens;
         public static void SetBoardColor(Color color1, Color color2)
         {
-<<<<<<< HEAD
            /* // include all screen in the game asap - done (mostly)
-=======
             // include all screen in the game asap - done (mostly)
->>>>>>> origin/master
             screens = new string[] {
                 "wallmonitorcanyon",
                 "wallmonitorcosmetics",
@@ -66,10 +57,7 @@ namespace Aspect.MenuLib
                 colorChanger.Color1 = color1;
                 colorChanger.Color2 = color2;
             }
-<<<<<<< HEAD
            */
-=======
->>>>>>> origin/master
         }
     }
 }
