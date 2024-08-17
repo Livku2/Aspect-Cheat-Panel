@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿using HarmonyLib;
+=======
+using HarmonyLib;
+>>>>>>> origin/master
 using Photon.Pun;
 using UnityEngine;
 using Aspect.Utilities;
@@ -2784,4 +2788,8 @@ namespace Aspect.MenuLib
             }
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/master
